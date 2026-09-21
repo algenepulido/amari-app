@@ -145,12 +145,19 @@ alter table public.invitation_codes
   add constraint invitation_codes_invite_source_check
   check (invite_source in ('bootstrap', 'monthly_member', 'admin', 'reissue'));
 
-insert into public.invitation_codes (
-  code, code_hash, code_prefix, invite_source,
-  recipient_name, recipient_email, tier_grant,
-  grants_admin, staff_role_grant, expires_at, issued_at
-)
-select
+-- The identifiers are captured as the rows are written, so the assertions below
+-- can speak about exactly the replacements this transaction created and nothing
+-- else. Without this the checks scan every reissue row that has ever existed,
+-- and a second run trips over the first run's rows once they have been expired
+-- or redeemed.
+create temp table p0_replacements on commit drop as
+with inserted as (
+  insert into public.invitation_codes (
+    code, code_hash, code_prefix, invite_source,
+    recipient_name, recipient_email, tier_grant,
+    grants_admin, staff_role_grant, expires_at, issued_at
+  )
+  select
   gen.code,
   encode(extensions.digest(gen.code, 'sha256'), 'hex'),
   substring(gen.code, 1, 10),
@@ -172,8 +179,11 @@ cross join lateral (
       when 'silver'   then 'AMARI-SLVR'
       else 'AMARI-MEMB'
     end
-  ) as code
-) gen;
+    ) as code
+  ) gen
+  returning id
+)
+select id as invitation_id from inserted;
 
 -- ---------------------------------------------------------------------------
 -- C. Redemption is authenticated-only and binds to auth.uid().
@@ -618,22 +628,25 @@ begin
      and code is not null
      and length(code) - length(code_prefix) - 1 < 40;
 
-  select count(*) into v_replacements from public.invitation_codes
-   where used_by is null and expires_at > now() and invite_source = 'reissue';
+  select count(*) into v_replacements
+    from public.invitation_codes i
+    join p0_replacements r on r.invitation_id = i.id
+   where i.used_by is null and i.expires_at > now();
 
   select count(*) into v_valid_unused from public.invitation_codes
    where used_by is null and expires_at > now();
 
   -- A replacement that is wrong in any respect at all.
-  select count(*) into v_bad_replacement from public.invitation_codes
-   where invite_source = 'reissue'
-     and ( recipient_email is null
-        or coalesce(grants_admin, false) is true
-        or staff_role_grant is not null
-        or used_by is not null
-        or expires_at <= now()
-        or code_hash is null
-        or length(code) - length(code_prefix) - 1 <> 48 );
+  select count(*) into v_bad_replacement
+    from public.invitation_codes i
+    join p0_replacements r on r.invitation_id = i.id
+   where ( i.recipient_email is null
+        or coalesce(i.grants_admin, false) is true
+        or i.staff_role_grant is not null
+        or i.used_by is not null
+        or i.expires_at <= now()
+        or i.code_hash is null
+        or length(i.code) - length(i.code_prefix) - 1 <> 48 );
 
   select count(*) into v_members     from public.members;
   select count(*) into v_admin_roles from public.admin_roles;

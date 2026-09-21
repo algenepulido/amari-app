@@ -59,10 +59,12 @@ set role anon; select public.validate_invitation_code('NOT-A-REAL-CODE'); reset 
 \echo ''
 \echo '=== E. INVITATION REPLACEMENT TESTS ==='
 select set_config('test.newcode',(select code from public.invitation_codes
-  where invite_source='reissue' and recipient_email='weak.addressed@example.invalid'),false);
+  where invite_source='reissue' and recipient_email='weak.addressed@example.invalid'
+    and used_by is null and expires_at > now() order by id desc limit 1),false);
 \echo '-- replacement suffix length    expect: 48'
 select length(code)-length(code_prefix)-1 from public.invitation_codes
- where invite_source='reissue' and recipient_email='weak.addressed@example.invalid';
+ where invite_source='reissue' and recipient_email='weak.addressed@example.invalid'
+   and used_by is null and expires_at > now();
 \echo '-- anon validates new code      expect: true'
 set role anon; select public.validate_invitation_code(current_setting('test.newcode')) ->> 'valid'; reset role;
 \echo '-- anon validates expired legacy  expect: false'

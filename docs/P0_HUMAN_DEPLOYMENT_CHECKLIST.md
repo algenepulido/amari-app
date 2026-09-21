@@ -14,7 +14,7 @@ another. Neither is acceptable for a production migration, so this is a manual p
 
 | File | SHA-256, line endings normalised to LF | Bytes |
 |---|---|---|
-| `supabase/migrations/20260921000001_p0_invitation_containment.sql` | `b90506de22f4ad5756286ac677a53c3a507f714f8fa621f2e4b3eeb6ad6c2843` | 26,735 |
+| `supabase/migrations/20260921000001_p0_invitation_containment.sql` | `38e3142ef20602ef82fb9b2e365b932bf0e6481399f58e876a3a2634e0e1bd39` | 27,290 |
 | `scripts/rollback-p0-invitation-containment.sql` | `23b84826d204acf187630bc2dfb5ca739e52e29e3f1181ced227d3d62b80a5a0` | 7,604 |
 
 ## The steps
@@ -36,7 +36,7 @@ $hash
 $lf.Length
 ```
 
-It must print `b90506de22f4ad5756286ac677a53c3a507f714f8fa621f2e4b3eeb6ad6c2843` and `26735`. If
+It must print `38e3142ef20602ef82fb9b2e365b932bf0e6481399f58e876a3a2634e0e1bd39` and `27290`. If
 either differs, stop and say so. Do not run it.
 
 **Capture the reissue list first.** Open `secure-output/pending-reissue-list.sql`, run it in the
