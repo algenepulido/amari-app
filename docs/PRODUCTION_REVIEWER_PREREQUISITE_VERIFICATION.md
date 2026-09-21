@@ -109,6 +109,18 @@ binary and is public by design. It is recorded here because it is the credential
 to reach the anonymous role, so its existence is part of the exposure even though it is not a
 leak.
 
+### Action taken, repository visibility
+
+On 21 September 2026, on explicit instruction, the repository was set to private. This is the one
+action taken in this phase. It touched no credential, no database object and no history.
+
+Verified rather than assumed. Unauthenticated requests now return 404 at all three surfaces:
+`raw.githubusercontent.com` for a previously public file, `api.github.com` for the repository, and
+`github.com` for the repository page. The GitHub API reports `visibility=private`.
+
+It does not undo prior exposure. Anything already read or mirrored while the repository was public
+remains outside our control. It stops continued public access while the live state is established.
+
 ### Verified repository, exposure surface
 
 This was checked after the tables above were written, and it changes how every row in them should
