@@ -353,7 +353,16 @@ begin
     return;
   end if;
 
-  if v_tier < 'gold'::membership_tier then
+  -- An explicit allow-list rather than an ordered comparison. The enum does
+  -- currently sort member < silver < gold < platinum < laureate, verified live,
+  -- so `v_tier < 'gold'` would behave correctly today. It would stop behaving
+  -- correctly the moment somebody adds a tier with a bare ALTER TYPE ADD VALUE,
+  -- because a new label appends to the end of the sort order and would be
+  -- treated as the highest tier in the system. The list below is the same rule
+  -- with no dependency on enum ordering. The threshold is unchanged.
+  if v_tier not in ('gold'::membership_tier,
+                    'platinum'::membership_tier,
+                    'laureate'::membership_tier) then
     raise exception 'higher membership tier required' using errcode = '42501';
   end if;
 end;

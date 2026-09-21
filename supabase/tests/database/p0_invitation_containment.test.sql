@@ -11,7 +11,7 @@
 
 begin;
 
-select plan(30);
+select plan(37);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one identity per tier, plus suspended, admin and non-member.
@@ -23,7 +23,8 @@ insert into auth.users (id, raw_app_meta_data) values
   ('00000000-0000-0000-0000-00000000c004', '{}'::jsonb),
   ('00000000-0000-0000-0000-00000000c005', '{}'::jsonb),
   ('00000000-0000-0000-0000-00000000c006', '{}'::jsonb),
-  ('00000000-0000-0000-0000-00000000c007', '{}'::jsonb)
+  ('00000000-0000-0000-0000-00000000c007', '{}'::jsonb),
+  ('00000000-0000-0000-0000-00000000c008', '{}'::jsonb)
 on conflict (id) do nothing;
 
 insert into public.members (id, full_name, email, tier, status) values
@@ -32,7 +33,8 @@ insert into public.members (id, full_name, email, tier, status) values
   ('00000000-0000-0000-0000-00000000c004', 'pgTAP Gold',      'pgtap.c004@example.invalid', 'gold',     'active'),
   ('00000000-0000-0000-0000-00000000c005', 'pgTAP Platinum',  'pgtap.c005@example.invalid', 'platinum', 'active'),
   ('00000000-0000-0000-0000-00000000c006', 'pgTAP Suspended', 'pgtap.c006@example.invalid', 'gold',     'suspended'),
-  ('00000000-0000-0000-0000-00000000c007', 'pgTAP Admin',     'pgtap.c007@example.invalid', 'member',   'active');
+  ('00000000-0000-0000-0000-00000000c007', 'pgTAP Admin',     'pgtap.c007@example.invalid', 'member',   'active'),
+  ('00000000-0000-0000-0000-00000000c008', 'pgTAP Laureate',  'pgtap.c008@example.invalid', 'laureate', 'active');
 
 insert into public.admin_roles (member_id, role)
 values ('00000000-0000-0000-0000-00000000c007', 'admin')
@@ -210,6 +212,40 @@ select lives_ok($$ select count(*) from public.map_countries(null) $$,
 
 reset role;
 
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c008', true);
+select lives_ok($$ select count(*) from public.map_projects(-90, -180, 90, 180, null) $$,
+  'map: laureate, the highest tier, admitted');
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- is_admin() derives from auth.uid() and authoritative admin_roles state.
+-- ---------------------------------------------------------------------------
+set local role authenticated;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c004', true);
+select is(public.is_admin(), false,
+  'is_admin is false for an ordinary member');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c007', true);
+select is(public.is_admin(), true,
+  'is_admin is true for a member holding an admin_roles row');
+
+-- The caller cannot borrow another identity's administrative state: is_admin
+-- takes no argument at all, so there is nothing to supply.
+select is(
+  (select count(*) from pg_proc
+    where oid = 'public.is_admin()'::regprocedure
+      and pg_get_function_identity_arguments(oid) = ''),
+  1::bigint,
+  'is_admin accepts no caller-supplied identifier');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c004', true);
+select is(public.is_admin(), false,
+  'a non-admin caller cannot cause another user admin state to be used');
+
+reset role;
+
 -- ---------------------------------------------------------------------------
 -- 24 to 25. The rollback table is not an application-readable object.
 -- ---------------------------------------------------------------------------
@@ -261,6 +297,11 @@ select is((select count(*) from public.members where id <> auth.uid()),
   0::bigint, 'an authenticated member still cannot read another member row');
 
 reset role;
+
+select is(
+  (select count(*) from public.admin_roles),
+  (current_setting('test.admin_roles_before', true))::bigint,
+  'the administrator set is exactly as it was before this suite ran');
 
 select * from finish();
 
