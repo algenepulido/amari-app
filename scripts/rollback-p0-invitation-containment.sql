@@ -22,7 +22,7 @@ update public.invitation_codes i
    set expires_at = b.previous_expires
   from public.invitation_expiry_backup_20260921 b
  where b.invitation_id = i.id
-   and b.reason = 'p0_admin_capable_containment'
+   and b.reason = 'p0_containment_rev3'
    and i.used_by is null;
 
 -- Report, do not assume.

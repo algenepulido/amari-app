@@ -48,7 +48,7 @@ select
 --    explicit revokes stop a future grant from quietly opening it.
 -- ---------------------------------------------------------------------------
 create table if not exists public.invitation_expiry_backup_20260921 (
-  invitation_id    uuid primary key,
+  invitation_id    bigint primary key,
   previous_expires timestamptz not null,
   backed_up_at     timestamptz not null default now(),
   reason           text not null

@@ -3,8 +3,8 @@
 Prepared 21 September 2026. Not executed. Requires an explicit go.
 
 Migration: `supabase/migrations/20260921000001_p0_invitation_containment.sql`
-SHA-256, line endings normalised to LF: `92fbc3c1f77690b072046898ef822a684d2176ae3afe2cbd671cc204731510f3`
-Size: 26,733 bytes. One transaction. No `drop table`, no `delete`, no `truncate`.
+SHA-256, line endings normalised to LF: `b90506de22f4ad5756286ac677a53c3a507f714f8fa621f2e4b3eeb6ad6c2843`
+Size: 26,735 bytes. One transaction. No `drop table`, no `delete`, no `truncate`.
 
 ## What changed in revision 3
 
