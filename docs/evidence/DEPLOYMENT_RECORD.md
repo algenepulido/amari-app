@@ -59,7 +59,8 @@ only. No invitation codes, no recipient names, no email addresses, no tokens.
 
 | Grid | Path |
 |---|---|
-| Before, statement one | `docs/evidence/before-20260922-080109-statement-one.csv` |
+| Before, statement one, FRESH, captured immediately before the run | _to add_ |
+| Earlier baseline, 08:01, retained for reference only, not the paired before grid | `docs/evidence/before-20260922-080109-statement-one.csv` |
 | After, statement one | _to add_ |
 | Admin reconciliation after | _to add_ |
 

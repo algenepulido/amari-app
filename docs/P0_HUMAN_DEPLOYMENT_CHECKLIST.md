@@ -44,8 +44,12 @@ editor, and save the result somewhere private. It must return exactly **nine** r
 happen before the migration, because afterwards those rows are expired and the query no longer
 finds them. Do not paste this output into chat; it contains names and email addresses.
 
-**Capture the before state.** Run statement one of
-`scripts/verify-production-reviewer-prerequisites.sql` and save the grid.
+**Capture a fresh before state.** Run statement one of
+`scripts/verify-production-reviewer-prerequisites.sql` and save the grid, immediately before the
+migration and in the same session. Do not reuse the earlier baseline from 08:01, even though its
+counts still match. A grid captured an hour earlier says nothing about the state at the moment of
+the write, and the point of a before grid is to be paired with the after grid across the smallest
+possible gap.
 
 **Copy the migration file once** and paste it into the fresh editor. Do not type it, do not paste
 in pieces.
