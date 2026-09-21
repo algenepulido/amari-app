@@ -1,4 +1,4 @@
-# P0 invitation containment plan
+# P0 invitation containment plan, revision 2
 
 Prepared 21 September 2026. Nothing in this plan has been applied. Production is unchanged.
 
@@ -78,9 +78,11 @@ from, rather than merely hoped about.
 - Current client call path: none anywhere in the application.
 - Effect of revoking anon and PUBLIC: none.
 - Proposed safe grant: service_role only.
-- Why it matters: while an anonymous caller can clear the rate limit table, no rate limit on
-  validation can mean anything, because the caller can reset its own throttle. This is a
-  precondition for phase 2E rather than an independent finding.
+- Correction to revision 1. That revision called this a precondition for rate limiting, on the
+  reasoning that an anonymous caller could clear its own throttle. The live dependency analysis
+  shows `public.rate_limits` already has row level security enabled with no policy, which denies
+  every application role irrespective of table grants, so the delete would have affected zero rows.
+  Revoking it is defence in depth, not a precondition.
 - Rollback: section 2.
 - Regression tests required: an anonymous caller cannot clear the rate limit table.
 
@@ -90,25 +92,28 @@ from, rather than merely hoped about.
   search path, and all three are SECURITY DEFINER.
 - Internal authorisation checks: none.
 - What they return: project identifier, name, description, category, creator first name, display
-  label, image URL, external link, and coordinates. Locations are coarsened to a region centroid by
-  a trigger at insert time, so the coordinates are approximate, but the records themselves are
-  member-facing content and not intended to be public.
+  label, image URL, external link and coordinates. Coordinates are coarsened to a region centroid
+  at insert time, so they are approximate, but the records are member-facing content.
 - Current client call path: `hooks/useMapData.ts:26`, `:45` and `:69`, consumed only by
-  `app/(tabs)/aligned/index.tsx` and `components/aligned/ProjectMap.tsx`, both behind the Aligned
-  tab. No edge function calls them; `refresh-map-data` calls `refresh_map_cache`, which is untouched.
-- Effect of revoking anon and PUBLIC: none on any known caller. Note that revoking PUBLIC also
-  removes the execute privilege service_role was inheriting through PUBLIC. Verified that nothing
-  server-side calls them, so this is intentional rather than an oversight.
-- Proposed safe grant: authenticated only.
-- Search path: set to `public, extensions`. PostGIS is not created by any migration in this
-  repository, so its schema cannot be established from source. The migration therefore runs a smoke
-  test against all three functions after the change and aborts the whole transaction if the fixed
-  path cannot resolve the PostGIS operators.
-- Residual: tier gating for Aligned is enforced in the client only. An authenticated member below
-  the Aligned tier can still call these functions directly. Closing that is a follow-up, not
-  containment.
-- Rollback: sections 2 and 3.
-- Regression tests required: an anonymous caller cannot read project map data.
+  `app/(tabs)/aligned/index.tsx` and `components/aligned/ProjectMap.tsx`. No edge function calls
+  them; `refresh-map-data` calls `refresh_map_cache`, which is untouched.
+- Proposed: authenticated only as a grant, **and** an authorisation check inside each function.
+  Requiring authentication alone is not sufficient, because a lower-tier member could call the RPC
+  directly while the client merely hides the tab.
+
+**The business rule, and an ambiguity I am not resolving silently.** The client gate reads
+`TAB_VISIBILITY.aligned = 3` against `TIER_LEVELS`, where gold is 3. So the rule the application
+actually enforces today is gold and above. The copy on the same screen says "Available from
+Platinum membership". The constant and the sentence disagree, and they have disagreed since the
+gold tier was introduced. This migration reproduces what is enforced, gold and above, so that
+nothing which works today stops working. If the intended rule is platinum, that is a one-word
+change in the guard plus a copy fix, and it is a product decision rather than a security one.
+
+- The guard reads `members.tier` directly rather than calling `get_member_tier()`, because that
+  helper falls back to a JWT claim. For an authorisation gate the row is the authority.
+- Administrators are admitted regardless of tier.
+- Search path fixed to `public, extensions`, proven by an in-migration smoke test that aborts the
+  transaction if PostGIS cannot be resolved or a rewritten body is wrong.
 
 ### `is_admin()`, `is_active_member()`, `get_member_tier()`
 
@@ -129,39 +134,28 @@ commit.
 Impact is nil for any individual. The baseline query established that **none** of the nine is
 addressed to a named recipient, so no person is waiting on one of these codes.
 
-## Phase 2B. The predictable bootstrap pool. Stopping here as instructed
+## Phase 2B. The predictable pool is now retired in full
 
-This part is **not** in the migration, and it needs your decision.
+Revision 2 takes the stronger line. The migration expires every valid unused invitation that is
+admin-capable in any format, or issued from the bootstrap source, or whose code matches the
+published predictable pattern. Three post-conditions are asserted inside the transaction and a
+partial result cannot commit.
 
-What the evidence shows. There are 1,209 valid unused bootstrap codes. Three of them are addressed
-to a named person and are therefore live invitations somebody may still be holding. The remaining
-1,206 are unaddressed stock. The live issuing process is clearly the admin path rather than the
-static pool: the `admin` source has seven valid unused codes, six of them addressed to named
-people, and the most recent issue was 13 August 2026. The last redemption of a bootstrap code was
-8 July 2026, and the last redemption of any kind was 31 July 2026. The whole membership is 23
-people, three of whom joined in the last 90 days.
+Exact impact, measured live rather than estimated. The predicate matches **1,210** rows. Three of
+them are addressed to a named person. **Six** valid unused invitations survive, and all six are
+from the controlled admin path and addressed to named recipients. The one admin-capable code that
+is not in the predictable format is also caught, by the admin-capable clause.
 
-What I can prove. New invitations are created through `admin_create_invitation_code` and
-`create_monthly_invite`, both of which generate codes with random suffixes, and neither of which
-draws from the static pool.
+The three named recipients need replacements rather than a preserved legacy credential. Reissuing
+is possible with what already exists: `admin_create_invitation_code` generates a random suffix and
+is reachable from Admin then Codes in the app. No product change is required. The list of who they
+are is produced by `secure-output/pending-reissue-list.sql`, which is gitignored because its output
+contains names and email addresses, and which must be run **before** the migration, because
+afterwards those rows are expired and the predicate no longer matches them.
 
-What I cannot prove. Whether any of those 1,206 unaddressed codes has been handed out by hand, read
-aloud, printed, or promised to someone, because nothing in the database or the repository records
-that. That is a question about how AMARI actually operates, and only you can answer it.
-
-What would break if all 1,209 were expired. The three addressed bootstrap invitations would stop
-working, and their named recipients would need a replacement. Any unaddressed code given out
-informally would stop working with no way for us to know who was affected or to warn them.
-
-The three options, in the order I would take them.
-
-- Expire the 1,206 unaddressed stock and leave the three addressed ones alone. This removes the
-  enumerable pool while breaking nothing we can see, and it is what I would recommend.
-- Expire all 1,209 and reissue the three through the admin path. Cleanest end state, requires you
-  to contact three people.
-- Leave the pool for now. Defensible only because the admin-capable codes are gone, which is the
-  part that grants privilege. The residual is that a stranger can still obtain ordinary member
-  access by sweeping a published pattern.
+The residual is the one you accepted: somebody informally handed a static code will find it no
+longer works, and we cannot know who that is. Against a pool that includes silver, platinum and
+laureate grants, that is the right trade.
 
 ## Phase 2C. Redemption
 
@@ -174,6 +168,29 @@ Not changed, and recorded as the first follow-up: the Apple private relay except
 check tests the shape of a caller-supplied string rather than the authentication provider. With
 admin-capable codes expired, the worst it now permits is redeeming an ordinary code addressed to
 somebody else. That should be fixed, and it is not containment.
+
+## Phase 3 amendment. Live dependency analysis for the rate limit functions
+
+Run against production before the revokes were written, not inferred from the repository.
+
+| Question | Answer |
+|---|---|
+| Other database functions referencing either name | none |
+| Trigger functions referencing either name | none |
+| Views or rules referencing them | none |
+| Edge functions referencing them | none; `refresh-map-data` calls `refresh_map_cache`, untouched |
+| Owner of both functions | `postgres` |
+| Direct privileges on `public.rate_limits` | anon has select, insert and delete; authenticated has select and delete |
+| Row level security on `public.rate_limits` | enabled, zero policies, not forced |
+
+Two conclusions follow. Nothing internal calls either function, so revoking execute breaks no
+server-side path. And the alarming-looking table privileges are inert, because row level security
+with no policy denies every non-owner role. The migration removes those redundant grants anyway, so
+that a privilege which looks live and is not cannot mislead somebody later. That block is clearly
+marked and can be struck if you want the change narrower.
+
+A consequence worth recording: because no function calls `check_rate_limit` any more, restoring
+rate limiting later means adding the call back, not merely re-granting it.
 
 ## Phase 2D and 2E. Rate limiting
 
