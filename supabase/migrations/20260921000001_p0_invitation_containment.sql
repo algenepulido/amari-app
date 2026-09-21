@@ -1,35 +1,51 @@
 -- ============================================================================
--- P0 invitation containment, revision 2
+-- P0 invitation containment, revision 3
 --
 -- PROPOSED. NOT APPLIED. Requires explicit approval before execution.
 --
--- Revision 2 incorporates four amendments:
---   1. the entire predictable and bootstrap pool is retired, not just the
---      admin-capable subset;
---   2. the map functions enforce active membership and tier server-side rather
---      than merely requiring authentication;
---   3. the rate limit revokes are backed by a live dependency analysis;
---   4. the rollback table is explicitly unreachable by application roles.
+-- Revision 3 makes the whole sequence atomic. The weak invitations are expired
+-- and their secure replacements are created inside one transaction, so there is
+-- no interval in which both are valid, and no interval after containment in
+-- which a 32-bit code survives.
 --
--- Scope discipline. Nothing here goes beyond the confirmed P0 surfaces.
--- Deliberately excluded and documented in docs/P0_INVITATION_CONTAINMENT_PLAN.md:
--- anonymous abuse limiting on validate_invitation_code, cryptographically
--- random code generation, hashed-only storage, retirement of the plaintext
--- column, the Apple private relay email bypass, and the allow-list pass over
--- the remaining functions that hold a PUBLIC grant.
+-- Order inside the transaction:
+--   A  back up the exact rows that will be invalidated
+--   B  capture the reissue targets before they are touched
+--   C  raise the generator from 32 bits to 192 bits
+--   D  expire every valid unused invitation, legacy and 32-bit alike
+--   E  create the replacements, secrets generated here rather than beforehand
+--   F  apply the redemption, grant and map hardening
+--   G  assert every post-condition, and commit only if all of them hold
 --
--- One transaction. Any failure rolls everything back and production is
--- unchanged.
+-- Scope discipline. Hashed-only storage, anonymous abuse limiting, minimised
+-- enumeration responses and retirement of the plaintext column remain Phase 2
+-- and are documented in docs/P0_INVITATION_CONTAINMENT_PLAN.md. They are not in
+-- this migration.
+--
+-- Any failure rolls the whole thing back and production is unchanged.
 -- ============================================================================
 
 begin;
 
 -- ---------------------------------------------------------------------------
--- 0. Reversibility, and the backup table is internal only.
---
---    Row level security is enabled with no policy, which denies every role
---    that is not the owner regardless of table grants. The explicit revokes
---    are belt and braces so that a future grant cannot quietly open it.
+-- Baseline captured up front. Anything that must not change is measured before
+-- anything changes, and asserted again at the end.
+-- ---------------------------------------------------------------------------
+create temp table p0_baseline on commit drop as
+select
+  (select count(*) from public.members)                                    as members,
+  (select count(*) from public.admin_roles)                                as admin_roles,
+  (select count(*) from public.invitation_codes where used_by is not null) as redeemed,
+  (select count(*) from public.invitation_codes
+     where used_by is null and expires_at > now())                         as valid_unused,
+  (select count(*) from public.invitation_codes
+     where used_by is null and expires_at > now()
+       and recipient_email is not null)                                    as reissue_targets;
+
+-- ---------------------------------------------------------------------------
+-- A. Reversibility. The backup table is internal only: forced row level
+--    security with no policy denies every role that is not the owner, and the
+--    explicit revokes stop a future grant from quietly opening it.
 -- ---------------------------------------------------------------------------
 create table if not exists public.invitation_expiry_backup_20260921 (
   invitation_id    uuid primary key,
@@ -47,82 +63,117 @@ revoke all on table public.invitation_expiry_backup_20260921 from authenticated;
 grant select, insert on table public.invitation_expiry_backup_20260921 to service_role;
 
 insert into public.invitation_expiry_backup_20260921 (invitation_id, previous_expires, reason)
-select id, expires_at, 'p0_containment_rev2'
+select id, expires_at, 'p0_containment_rev3'
 from public.invitation_codes
-where used_by is null
-  and expires_at > now()
-  and (
-        (coalesce(grants_admin, false) or staff_role_grant is not null)
-     or invite_source = 'bootstrap'
-     or coalesce(code, '') ~ '^AMARI-[A-Z]{3,4}-[0-9]{3}$'
-      )
+where used_by is null and expires_at > now()
 on conflict (invitation_id) do nothing;
 
 -- ---------------------------------------------------------------------------
--- A. Retire the legacy invitation pool.
+-- B. Capture the reissue targets before anything is expired. These are every
+--    valid unused invitation addressed to a named person: the legacy ones about
+--    to be retired, and the 32-bit ones that must not survive containment.
+-- ---------------------------------------------------------------------------
+create temp table p0_reissue_targets on commit drop as
+select id as source_invitation_id, recipient_name, recipient_email, tier_grant
+from public.invitation_codes
+where used_by is null
+  and expires_at > now()
+  and recipient_email is not null;
+
+-- ---------------------------------------------------------------------------
+-- C. Raise the generator to 192 bits.
 --
---    Three overlapping rules, deliberately a union rather than three passes:
---      * anything that can grant administrative rights, in any format;
---      * anything issued from the bootstrap source;
---      * anything whose code matches the published predictable pattern.
+--    gen_random_bytes(24) is 24 bytes, which is 192 bits, hex encoded to 48
+--    characters behind the existing readable prefix. The previous version used
+--    gen_random_bytes(4), which is 32 bits.
 --
---    Expected on production: 1,210 rows affected, of which three are addressed
---    to a named person and need reissuing through the admin panel. Six valid
---    unused codes survive, all from the controlled admin path and all
---    addressed to named recipients.
+--    Hex rather than a denser encoding because both client and server
+--    upper-case the code before hashing, so the alphabet has to survive
+--    upper-casing without losing entropy. Base64 would not. The cost is a long
+--    code, acceptable for a value that is sent to be copied rather than typed
+--    from memory. The client imposes no length or pattern constraint: verified
+--    at app/(auth)/invite.tsx:44 and components/v2/Onboarding.tsx:308, which
+--    check only a minimum of four characters.
+-- ---------------------------------------------------------------------------
+create or replace function public.generate_share_invite_code(p_prefix text default 'AMARI-INV')
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $gen$
+declare
+  v_candidate text;
+begin
+  loop
+    v_candidate := upper(coalesce(p_prefix, 'AMARI-INV')) || '-'
+                   || upper(encode(extensions.gen_random_bytes(24), 'hex'));
+    exit when not exists (
+      select 1 from public.invitation_codes where code = v_candidate
+    );
+  end loop;
+
+  return v_candidate;
+end;
+$gen$;
+
+revoke execute on function public.generate_share_invite_code(text)
+  from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- D. Expire every valid unused invitation.
+--
+--    Deliberately simpler than three overlapping predicates. The live baseline
+--    showed 1,216 valid unused invitations: 1,210 legacy, predictable or
+--    admin-capable rows, plus the six 32-bit survivors. Expiring the whole set
+--    leaves nothing weak behind by construction, rather than by a pattern match
+--    that might miss a shape nobody anticipated.
 --
 --    Nothing is deleted. Redeemed invitations are untouched. History intact.
 -- ---------------------------------------------------------------------------
 update public.invitation_codes
    set expires_at = now()
  where used_by is null
-   and expires_at > now()
-   and (
-         (coalesce(grants_admin, false) or staff_role_grant is not null)
-      or invite_source = 'bootstrap'
-      or coalesce(code, '') ~ '^AMARI-[A-Z]{3,4}-[0-9]{3}$'
-       );
+   and expires_at > now();
 
--- Assert every post-condition. A partial result must not commit.
-do $guard$
-declare
-  v_admin_capable integer;
-  v_predictable   integer;
-  v_bootstrap     integer;
-  v_survivors     integer;
-begin
-  select count(*) into v_admin_capable
-  from public.invitation_codes
-  where used_by is null and expires_at > now()
-    and (coalesce(grants_admin, false) or staff_role_grant is not null);
+-- ---------------------------------------------------------------------------
+-- E. Create the replacements, one per captured target, secrets generated here
+--    inside the transaction rather than sitting valid beforehand.
+-- ---------------------------------------------------------------------------
+alter table public.invitation_codes
+  drop constraint if exists invitation_codes_invite_source_check;
+alter table public.invitation_codes
+  add constraint invitation_codes_invite_source_check
+  check (invite_source in ('bootstrap', 'monthly_member', 'admin', 'reissue'));
 
-  select count(*) into v_predictable
-  from public.invitation_codes
-  where used_by is null and expires_at > now()
-    and coalesce(code, '') ~ '^AMARI-[A-Z]{3,4}-[0-9]{3}$';
-
-  select count(*) into v_bootstrap
-  from public.invitation_codes
-  where used_by is null and expires_at > now()
-    and invite_source = 'bootstrap';
-
-  select count(*) into v_survivors
-  from public.invitation_codes
-  where used_by is null and expires_at > now();
-
-  if v_admin_capable <> 0 then
-    raise exception 'admin-capable invitations still valid and unused: %', v_admin_capable;
-  end if;
-  if v_predictable <> 0 then
-    raise exception 'predictable-format invitations still valid and unused: %', v_predictable;
-  end if;
-  if v_bootstrap <> 0 then
-    raise exception 'bootstrap invitations still valid and unused: %', v_bootstrap;
-  end if;
-
-  raise notice 'containment complete: % valid unused invitations remain, all from the controlled admin path', v_survivors;
-end;
-$guard$;
+insert into public.invitation_codes (
+  code, code_hash, code_prefix, invite_source,
+  recipient_name, recipient_email, tier_grant,
+  grants_admin, staff_role_grant, expires_at, issued_at
+)
+select
+  gen.code,
+  encode(extensions.digest(gen.code, 'sha256'), 'hex'),
+  substring(gen.code, 1, 10),
+  'reissue',
+  t.recipient_name,
+  t.recipient_email,
+  t.tier_grant,
+  false,
+  null,
+  now() + interval '90 days',
+  now()
+from p0_reissue_targets t
+cross join lateral (
+  select public.generate_share_invite_code(
+    case t.tier_grant
+      when 'laureate' then 'AMARI-LAUR'
+      when 'platinum' then 'AMARI-PLAT'
+      when 'gold'     then 'AMARI-GOLD'
+      when 'silver'   then 'AMARI-SLVR'
+      else 'AMARI-MEMB'
+    end
+  ) as code
+) gen;
 
 -- ---------------------------------------------------------------------------
 -- C. Redemption is authenticated-only and binds to auth.uid().
@@ -528,6 +579,102 @@ exception
     raise exception 'map smoke test failed: %', sqlerrm;
 end;
 $smoke$;
+
+-- ---------------------------------------------------------------------------
+-- G. Every post-condition, asserted. The transaction commits only if all of
+--    them hold. A partial result is not a possible outcome.
+-- ---------------------------------------------------------------------------
+do $assert$
+declare
+  b                 record;
+  v_admin_capable   integer;
+  v_bootstrap       integer;
+  v_legacy_pattern  integer;
+  v_weak_suffix     integer;
+  v_replacements    integer;
+  v_valid_unused    integer;
+  v_bad_replacement integer;
+  v_members         integer;
+  v_admin_roles     integer;
+  v_redeemed        integer;
+begin
+  select * into b from p0_baseline;
+
+  select count(*) into v_admin_capable from public.invitation_codes
+   where used_by is null and expires_at > now()
+     and (coalesce(grants_admin, false) or staff_role_grant is not null);
+
+  select count(*) into v_bootstrap from public.invitation_codes
+   where used_by is null and expires_at > now() and invite_source = 'bootstrap';
+
+  select count(*) into v_legacy_pattern from public.invitation_codes
+   where used_by is null and expires_at > now()
+     and coalesce(code, '') ~ '^AMARI-[A-Z]{3,4}-[0-9]{3}$';
+
+  -- Any surviving code whose random component is shorter than 40 hex
+  -- characters, which catches the 32-bit suffixes and anything else weak.
+  select count(*) into v_weak_suffix from public.invitation_codes
+   where used_by is null and expires_at > now()
+     and code is not null
+     and length(code) - length(code_prefix) - 1 < 40;
+
+  select count(*) into v_replacements from public.invitation_codes
+   where used_by is null and expires_at > now() and invite_source = 'reissue';
+
+  select count(*) into v_valid_unused from public.invitation_codes
+   where used_by is null and expires_at > now();
+
+  -- A replacement that is wrong in any respect at all.
+  select count(*) into v_bad_replacement from public.invitation_codes
+   where invite_source = 'reissue'
+     and ( recipient_email is null
+        or coalesce(grants_admin, false) is true
+        or staff_role_grant is not null
+        or used_by is not null
+        or expires_at <= now()
+        or code_hash is null
+        or length(code) - length(code_prefix) - 1 <> 48 );
+
+  select count(*) into v_members     from public.members;
+  select count(*) into v_admin_roles from public.admin_roles;
+  select count(*) into v_redeemed    from public.invitation_codes where used_by is not null;
+
+  if v_admin_capable <> 0 then
+    raise exception 'admin-capable invitations still valid and unused: %', v_admin_capable;
+  end if;
+  if v_bootstrap <> 0 then
+    raise exception 'bootstrap invitations still valid and unused: %', v_bootstrap;
+  end if;
+  if v_legacy_pattern <> 0 then
+    raise exception 'predictable legacy invitations still valid and unused: %', v_legacy_pattern;
+  end if;
+  if v_weak_suffix <> 0 then
+    raise exception 'invitations with a weak random component still valid and unused: %', v_weak_suffix;
+  end if;
+  if v_replacements <> b.reissue_targets then
+    raise exception 'expected % replacements, found %', b.reissue_targets, v_replacements;
+  end if;
+  if v_valid_unused <> b.reissue_targets then
+    raise exception 'expected exactly % valid unused invitations after containment, found %',
+      b.reissue_targets, v_valid_unused;
+  end if;
+  if v_bad_replacement <> 0 then
+    raise exception 'replacements failing their own requirements: %', v_bad_replacement;
+  end if;
+  if v_members <> b.members then
+    raise exception 'member count changed from % to %', b.members, v_members;
+  end if;
+  if v_admin_roles <> b.admin_roles then
+    raise exception 'administrator count changed from % to %', b.admin_roles, v_admin_roles;
+  end if;
+  if v_redeemed <> b.redeemed then
+    raise exception 'redeemed invitation count changed from % to %', b.redeemed, v_redeemed;
+  end if;
+
+  raise notice 'containment complete. % legacy invitations expired, % secure replacements created, % members and % administrators unchanged',
+    b.valid_unused, v_replacements, v_members, v_admin_roles;
+end;
+$assert$;
 
 -- ---------------------------------------------------------------------------
 -- 4. New functions in the application schema stop being PUBLIC by default.

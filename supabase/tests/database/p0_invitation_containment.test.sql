@@ -11,7 +11,7 @@
 
 begin;
 
-select plan(37);
+select plan(45);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: one identity per tier, plus suspended, admin and non-member.
@@ -24,7 +24,9 @@ insert into auth.users (id, raw_app_meta_data) values
   ('00000000-0000-0000-0000-00000000c005', '{}'::jsonb),
   ('00000000-0000-0000-0000-00000000c006', '{}'::jsonb),
   ('00000000-0000-0000-0000-00000000c007', '{}'::jsonb),
-  ('00000000-0000-0000-0000-00000000c008', '{}'::jsonb)
+  ('00000000-0000-0000-0000-00000000c008', '{}'::jsonb),
+  ('00000000-0000-0000-0000-00000000c009', '{}'::jsonb),
+  ('00000000-0000-0000-0000-00000000c010', '{}'::jsonb)
 on conflict (id) do nothing;
 
 insert into public.members (id, full_name, email, tier, status) values
@@ -302,6 +304,81 @@ select is(
   (select count(*) from public.admin_roles),
   (current_setting('test.admin_roles_before', true))::bigint,
   'the administrator set is exactly as it was before this suite ran');
+
+
+-- ---------------------------------------------------------------------------
+-- Replacement invitations: 192-bit secrets issued through the reissue path.
+-- ---------------------------------------------------------------------------
+insert into public.invitation_codes
+  (code, code_hash, code_prefix, invite_source, recipient_name, recipient_email,
+   tier_grant, grants_admin, staff_role_grant, expires_at, issued_at)
+select c.code,
+       encode(extensions.digest(c.code, 'sha256'), 'hex'),
+       substring(c.code, 1, 10),
+       'reissue', 'pgTAP Reissue', 'pgtap.reissue@example.invalid',
+       'silver', false, null, now() + interval '30 days', now()
+from (select public.generate_share_invite_code('AMARI-SLVR') as code) c;
+
+select set_config('test.reissued',
+  (select code from public.invitation_codes
+    where recipient_email = 'pgtap.reissue@example.invalid'), true);
+
+select is(
+  (select length(code) - length(code_prefix) - 1
+     from public.invitation_codes where recipient_email = 'pgtap.reissue@example.invalid'),
+  48,
+  'a reissued invitation carries a 48 character hex suffix, which is 192 bits');
+
+select is(
+  (select count(*) from public.invitation_codes
+    where invite_source = 'reissue'
+      and (coalesce(grants_admin, false) is true or staff_role_grant is not null)),
+  0::bigint,
+  'no replacement invitation can grant an administrative or staff role');
+
+set local role anon;
+select is(
+  public.validate_invitation_code(current_setting('test.reissued', true)) ->> 'valid',
+  'true',
+  'a new 192-bit invitation validates before sign-in');
+
+select is(
+  public.validate_invitation_code('AMARI-PGTAP-001') ->> 'valid',
+  'false',
+  'a contained legacy predictable invitation no longer validates');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c009', true);
+
+select is(
+  public.redeem_invitation_code(current_setting('test.reissued', true),
+    '00000000-0000-0000-0000-00000000c002', 'Wrong', 'pgtap.reissue@example.invalid') ->> 'error',
+  'identity_mismatch',
+  'another identity cannot redeem a replacement for the intended recipient');
+
+select is(
+  (public.redeem_invitation_code(current_setting('test.reissued', true),
+    '00000000-0000-0000-0000-00000000c009', 'Reissue Person', 'pgtap.reissue@example.invalid')
+   ->> 'success')::boolean,
+  true,
+  'the intended recipient redeems the replacement successfully');
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000c010', true);
+select is(
+  public.redeem_invitation_code(current_setting('test.reissued', true),
+    '00000000-0000-0000-0000-00000000c010', 'Late', 'pgtap.reissue@example.invalid') ->> 'error',
+  'invalid_or_expired',
+  'a replacement cannot be redeemed a second time');
+reset role;
+
+select is(
+  (select count(*) from public.admin_roles),
+  (current_setting('test.admin_roles_before', true))::bigint,
+  'issuing and redeeming replacements created no administrator');
+
 
 select * from finish();
 
