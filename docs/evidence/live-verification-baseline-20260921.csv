@@ -1,0 +1,18 @@
+section,subject,value
+A grant baseline,"check_rate_limit(p_ip text, p_endpoint text, p_max_requests integer, p_window_minutes integer)",public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,cleanup_rate_limits(),public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,map_countries(category_filter text),public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,"map_projects(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,"map_states(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,"redeem_invitation_code(p_code text, p_user_id uuid, p_full_name text, p_email text, p_city text, p_industry text)",public=true anon=true authenticated=true service_role=true acl_default=false
+A grant baseline,validate_invitation_code(p_code text),public=false anon=true authenticated=true service_role=true acl_default=false
+B must become zero,"  of those addressed to a named person",0
+B must become zero,admin_capable_valid_unused,9
+C bootstrap pool,"  addressed to a named person",3
+C bootstrap pool,"  unaddressed stock",1206
+C bootstrap pool,valid_unused_total,1209
+D live issuing process,"  addressed to a named person",6
+D live issuing process,admin_source_valid_unused,7
+E must not change,admin_roles_total,4
+E must not change,invitations_redeemed_total,24
+E must not change,members_total,23
