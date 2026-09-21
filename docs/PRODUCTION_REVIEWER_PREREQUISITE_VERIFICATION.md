@@ -160,9 +160,28 @@ guessing is required for any of it.
 - Whether anybody retrieved either is unknowable from here. GitHub does not expose access logs for
   this. NOT TESTED and not testable by us.
 
+- Declared artefact retention was one day, at `.github/workflows/setup-keystore.yml:42`. The
+  keystore is JKS, alias `amari-key`, validity 10000 days. VERIFIED REPOSITORY.
+- The repository secrets `ANDROID_KEYSTORE_BASE64` and `KEYSTORE_PASSWORD` were created at
+  02:02:54 and 02:02:58 on 27 February 2026, and neither has been updated since. The workflow run
+  began at 02:02:24 and produced its artefact at 02:02:33. VERIFIED REPOSITORY, read from the
+  GitHub API. Secret names and timestamps only; no value was read or is readable.
+
+Reading those timestamps together, the keystore that was published as a public artefact is almost
+certainly the same keystore now held in `ANDROID_KEYSTORE_BASE64`, and the password that was typed
+as an unmasked workflow input is almost certainly the one now held in `KEYSTORE_PASSWORD`. Twenty
+one seconds separate the artefact from the secret. Neither has been rotated in the seven months
+since. INFERRED, on timestamp evidence, not verified by comparing material, which cannot be done
+without reading the secret.
+
+The alias and store type match the upload keystore recorded in the project's own release notes, so
+this is the upload key rather than Google's app signing key. INFERRED. Whether Play App Signing is
+enabled, which determines how cheaply an upload key can be reset, is a Play Console question and
+remains NOT TESTED.
+
 The practical reading is that the Android upload key and its password should be treated as
-potentially compromised, with no evidence either way. That is a judgement about posture rather
-than a finding of compromise.
+potentially compromised, with no evidence of actual retrieval either way. That is a judgement about
+posture rather than a finding of compromise.
 
 ### Verified live
 
