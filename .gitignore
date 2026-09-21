@@ -83,3 +83,6 @@ BUILD_ANDROID.md
 
 # Design preview (local only)
 preview/
+
+# local reviewer credential output, never committed
+secure-output/
