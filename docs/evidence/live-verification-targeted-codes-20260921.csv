@@ -1,0 +1,6 @@
+label,matching_rows,state,privilege,tier
+seed_code_1_laureate_admin,0,not_present,n/a,n/a
+seed_code_2_platinum,0,not_present,n/a,n/a
+seed_code_3_silver,0,not_present,n/a,n/a
+seed_code_4_member,0,not_present,n/a,n/a
+tester_script_silver_code,1,redeemed,not_admin,silver

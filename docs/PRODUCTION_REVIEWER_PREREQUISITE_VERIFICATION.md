@@ -185,7 +185,57 @@ posture rather than a finding of compromise.
 
 ### Verified live
 
-None yet. This section is filled from the script output.
+Run on 21 September 2026 at 11:57 UTC against the production project, PostgreSQL 17.6. Raw grids
+are committed under `docs/evidence/`. All three statements were confirmed read-only in the editor
+itself before execution, not merely in the source file.
+
+**The invitation pool. The finding is confirmed live.**
+
+- Valid unused codes that are both admin-capable and in the predictable published format: **8**.
+  VERIFIED LIVE.
+- Valid unused admin-capable codes of any format: **9**. VERIFIED LIVE.
+- Admin-capable codes already redeemed: **4**. VERIFIED LIVE. These require reconciliation against
+  the administrators you expect to exist.
+- Admin-capable codes unused but expired: 6. VERIFIED LIVE.
+- Total rows 2,053, of which 1,216 are valid and unused, 24 redeemed, 813 unused and expired.
+  1,209 of the valid unused codes are bootstrap source and in the predictable format. VERIFIED LIVE.
+- The plaintext `code` column is still populated on all 2,053 rows. VERIFIED LIVE.
+- Valid unused by tier: member 600, silver 358, platinum 198, laureate 59, gold 1. VERIFIED LIVE.
+
+**Live grants on the high risk functions.**
+
+- `redeem_invitation_code` is executable by **public and anon**, as well as authenticated, and does
+  not reference `auth.uid()`. VERIFIED LIVE. This is broader than the migration text alone
+  indicated, because the explicit grant to authenticated was never accompanied by a revoke of the
+  default public grant.
+- `validate_invitation_code` is executable by anon. VERIFIED LIVE.
+- `check_rate_limit` is executable by public and anon and sets no search path. VERIFIED LIVE.
+- `cleanup_rate_limits` is executable by public and anon and is not security definer. VERIFIED LIVE.
+- `map_projects`, `map_states` and `map_countries` are executable by anon and set no search path.
+  VERIFIED LIVE.
+- `change_member_tier`, `admin_set_member_status`, `admin_create_invitation_code` and
+  `create_monthly_invite` are not executable by public or anon, are executable by authenticated,
+  and all reference `auth.uid()`. VERIFIED LIVE. The March authority hardening holds in production.
+- `custom_access_token_hook` is not security definer live and carries no grant to public, anon or
+  authenticated. VERIFIED LIVE.
+- `is_admin`, `is_active_member` and `get_member_tier` are executable by public and anon but all
+  reference `auth.uid()`, so an anonymous caller learns only that it is nobody. VERIFIED LIVE.
+
+**Live schema shape.**
+
+- 67 security definer functions in `public`. 15 are executable by public, 16 by anon, 54 by
+  authenticated. 8 set no search path. 13 are anon-callable and never reference `auth.uid()`.
+  VERIFIED LIVE.
+- 47 tables. One has row level security disabled. Twelve have it enabled with no policy, which
+  denies all non-privileged access by default. VERIFIED LIVE.
+
+**The committed codes.**
+
+- The four codes in `supabase/seed.sql` are **not present** in production. That file has never been
+  applied there. VERIFIED LIVE.
+- The invitation code committed in `scripts/verify-mobile-flows.mjs` and the Android test script is
+  present and **already redeemed**, at silver tier, not admin-capable. It cannot be redeemed again.
+  VERIFIED LIVE.
 
 ## B. Static findings not yet proven live
 
@@ -210,7 +260,34 @@ settle each one is named, so the script output can be read directly against this
 
 ## C. Live and repository discrepancies
 
-NOT TESTED. This section is filled after the script runs.
+**One migration is applied in production that is not in the release line.** Production has 55
+applied migrations against 54 files in the repository. The extra is `20260720000001`,
+`repair_degraded_feeds`, two statements, applied 20 July 2026. VERIFIED LIVE.
+
+It is accounted for. The file exists on the local branch `fix/repair-degraded-feeds` at commit
+`18d65da`, which has never been pushed to the remote and has never been merged into the release
+line. Its content is data only: it repoints one RSS source at its canonical host and deactivates
+another whose upstream feed was withdrawn. It contains no grant, no revoke, no policy and no
+function definition. VERIFIED REPOSITORY.
+
+So this is a process gap rather than a security finding. Production carries a change that no
+reviewer of the release line can see, and it survives only because one laptop holds the branch.
+It should be committed to the release line as a record, which is a documentation step and not a
+repair of production.
+
+**The live grant surface is wider than the migration text suggests.** `redeem_invitation_code`
+carries an explicit grant to authenticated in the migration, and is executable by public and anon
+in production. Nothing drifted. The migration simply never revoked the default, and the default is
+what governs. This is the single most important lesson for reading the rest of the matrix: the
+grant statements in the repository describe intent and understate reach. VERIFIED LIVE against
+VERIFIED REPOSITORY.
+
+**Counts differ between the migration parse and the live catalogue.** The repository parse found 70
+security definer functions; production has 67. The parse found 6 without a search path; production
+has 8. `custom_access_token_hook` is security definer in the repository parse and is not in
+production. These are reconciliation items, not yet explained, and they are the reason the live
+catalogue rather than the migrations is the authority for the authorisation matrix. NOT TESTED
+further.
 
 Three comparisons will be made, and all three are mechanical rather than impressionistic.
 
