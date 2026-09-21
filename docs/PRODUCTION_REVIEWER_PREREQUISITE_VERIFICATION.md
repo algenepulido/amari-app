@@ -109,6 +109,49 @@ binary and is public by design. It is recorded here because it is the credential
 to reach the anonymous role, so its existence is part of the exposure even though it is not a
 leak.
 
+### Verified repository, exposure surface
+
+This was checked after the tables above were written, and it changes how every row in them should
+be read. The earlier assessment did not establish repository visibility and should not have
+characterised exposure without it.
+
+- **The repository `tapiwanashenyerenyere-afk/amari-app` is public.** Visibility is `public` and
+  `private` is false. There is one collaborator, no fork, no deploy key and no watcher. VERIFIED
+  REPOSITORY, read from the GitHub API on 21 September 2026.
+- The migration carrying the predictable administrative invitation pool is present on the public
+  default branch `master`, and the administrative insert is in that public copy. Anyone may read
+  it without authenticating. VERIFIED REPOSITORY.
+- `supabase/seed.sql`, carrying four literal codes including one granting laureate tier with
+  administrative rights, is on the public default branch. VERIFIED REPOSITORY.
+- `eas.json`, carrying the Supabase project reference and the anonymous key, is on the public
+  default branch. VERIFIED REPOSITORY.
+- `scripts/verify-mobile-flows.mjs` and `docs/TINASHE-ANDROID-TEST-SCRIPT.md`, carrying the live
+  silver invitation code and a named person's email address, are not on `master` but are present
+  on nineteen pushed branches, every one of which is public. VERIFIED REPOSITORY.
+
+The consequence is that the predictable code pattern is not merely guessable. It is published,
+together with the project reference and the anonymous key needed to reach the endpoint. No
+guessing is required for any of it.
+
+### Verified repository, keystore workflow exposure
+
+- The keystore workflow has been run exactly once, on 27 February 2026, dispatched by the account
+  owner. VERIFIED REPOSITORY.
+- The `android-keystore` artefact from that run exists in the record and is expired. It expired on
+  28 February 2026 and cannot be downloaded now. VERIFIED REPOSITORY.
+- The run logs are no longer retrievable. The GitHub API returns HTTP 410 Gone for them. VERIFIED
+  REPOSITORY.
+- During the window in which they were live, both were public, because the repository is public.
+  The artefact carried the keystore and its base64 encoding. The log carried the password on the
+  `keytool` command line, because the input is typed as a string and is therefore not masked.
+  INFERRED from the workflow definition and the repository visibility, not from any access record.
+- Whether anybody retrieved either is unknowable from here. GitHub does not expose access logs for
+  this. NOT TESTED and not testable by us.
+
+The practical reading is that the Android upload key and its password should be treated as
+potentially compromised, with no evidence either way. That is a judgement about posture rather
+than a finding of compromise.
+
 ### Verified live
 
 None yet. This section is filled from the script output.
@@ -162,9 +205,19 @@ function body changed, which is the cheapest possible tamper check.
 
 **The invitation path to administrative control.** VERIFIED REPOSITORY, NOT TESTED live. The
 chain is anonymous enumeration of predictable admin codes, then redemption by any authenticated
-caller, then an `admin_roles` row. Its live status turns on a single number, `1.10`. If that
-number is above zero, this is an open door and should be closed before anything else in this
-programme proceeds.
+caller, then an `admin_roles` row.
+
+A precision that matters. A valid unused admin-capable code does not by itself prove that a
+stranger can become an administrator. It establishes a precondition. Complete exploitability also
+depends on the validation function being anonymously callable in the live database, on the
+redemption function behaving as its source says, and on no server-side check intervening that the
+source does not show. None of those is proven live. The correct posture is to treat the path as
+P0 until it is disproven, not to describe it as an open door.
+
+What raises the urgency is the exposure surface rather than the code alone. The pattern is not
+guessable, it is published on a public repository together with the project reference and the
+anonymous key, so the only unknown in the chain is the live database state. Row `1.10` settles
+the first link.
 
 **Redemption trusting caller-supplied identity.** VERIFIED REPOSITORY. This is a defect
 regardless of the code pool, because it lets a member row and an administrative role be bound to
@@ -216,18 +269,42 @@ both halves.
 
 ## G. Recommended remediation order
 
-This is a recommendation and nothing has been actioned.
+This is a recommendation and nothing has been actioned. Credential rotation and history rewriting
+are explicitly deferred until the live state is understood, on the principle that you cannot
+sensibly rotate what you have not yet established is operationally significant.
+
+Before any of the ordered steps, one decision stands on its own. The repository is public, and
+making it private is a single reversible setting that immediately reduces the exposure of the
+invitation pool, the seed codes, the tester code and the personal email address, without touching
+any credential, any database object or any history. It does not repair anything, and it does not
+undo publication that has already occurred, but it stops the clock. It is the cheapest action
+available and it is yours to take or decline.
 
 First, run the script and read `1.10` and `1.06`. Everything else waits on those two numbers.
+Run `secure-output/targeted-code-checks.sql` alongside it, which answers whether the specific
+codes committed in the repository are still live, and whether the seed file has ever reached
+production. That file is gitignored because it contains code values. Its output contains none, so
+the output is safe to paste back.
 
 Second, if either is above zero, expire the administrative bootstrap rows. This is a single
 update that sets expiry on rows already identified by their source and grant, it deletes nothing,
 and it is reversible in the sense that history is preserved. It closes the open door without
 touching any other control.
 
-Third, expire the invitation code that is committed in the repository, then remove it from
-`scripts/verify-mobile-flows.mjs` and `docs/TINASHE-ANDROID-TEST-SCRIPT.md` along with the
-personal email address.
+Third, if the targeted check shows it is still live, expire the invitation code committed in the
+repository. Only then remove it from `scripts/verify-mobile-flows.mjs` and
+`docs/TINASHE-ANDROID-TEST-SCRIPT.md`, along with the personal email address. Removing it from the
+current files does not remove it from history, and on a public repository it does not remove it
+from anywhere it has already been read. Expiring the code is the control. Editing the files is
+hygiene, and rewriting history is a separate decision that should not be taken while the live
+state is still unknown.
+
+Alongside that, decide on the signing material. The artefact and the logs are no longer
+retrievable, so there is no continuing exposure to close, only a judgement about the window that
+has already passed. If Play App Signing is enabled for this application, resetting the upload key
+is a contained operation that does not require republishing under a new key, which makes rotation
+cheap. Confirming whether it is enabled is the next question, and it is a Play Console question
+rather than a repository one.
 
 Fourth, repair `redeem_invitation_code` so that it binds to `auth.uid()` and ignores any
 caller-supplied identifier, and condition the Apple relay exception on an actual Apple identity
