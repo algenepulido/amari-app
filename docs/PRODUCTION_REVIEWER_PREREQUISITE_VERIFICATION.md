@@ -229,6 +229,24 @@ itself before execution, not merely in the source file.
 - 47 tables. One has row level security disabled. Twelve have it enabled with no policy, which
   denies all non-privileged access by default. VERIFIED LIVE.
 
+**Administrator reconciliation.**
+
+- `admin_roles` holds four rows: one `owner` and three `admin`. No `editor` and no `door_staff`.
+  VERIFIED LIVE.
+- All four redeemed an admin-capable invitation, and all four came through a predictable-format
+  code. VERIFIED LIVE.
+- Zero administrators exist by any other route. VERIFIED LIVE.
+
+Read carefully, this is the expected shape rather than a sign of compromise. The predictable pool
+was the intended bootstrap mechanism, so the founding administrators arriving through it is what
+should be seen. It does two useful things. It confirms the mechanism works end to end, which means
+the eight codes still open would work the same way for anyone who used them. And it bounds the
+reconciliation task to four identities rather than an open question.
+
+The remaining step is yours and needs no further query: confirm that one owner and three admins is
+the number you expect, and that they are the people you expect. If the count is right, nothing has
+been taken. If it is not, the four identities can be named in a follow-up query.
+
 **The committed codes.**
 
 - The four codes in `supabase/seed.sql` are **not present** in production. That file has never been
