@@ -63,6 +63,49 @@ to re-run after adding a name to the list.
 generates 192-bit codes automatically. It does not create a tracking record, so prefer the script
 when you want the revoke to be reliable later.
 
+## Shared reviewer account, when the tester cannot give you an email
+
+Use this when a candidate is under an Upwork trial and should not be handing over a personal
+email address before a contract is agreed. It is iOS only, and on iOS it needs nothing from
+them at all, because the app is public on the App Store.
+
+The app already supports it. `app/(auth)/invite.tsx` ships three sign-in modes and the third is
+reached by tapping **Reviewer password access**. It calls `signInWithPassword` with an email and
+password rather than an invitation code, it is rendered unconditionally, and it is in the live
+1.2.5 build. No code change and no new build are required.
+
+**Do not reuse the Apple App Review demo account** recorded under "App Review Access" in
+`docs/RELEASE-WORKFLOW.md`. If a tester changes its password or its state, the next App Store
+review breaks. Each reviewer gets their own account.
+
+**Create the auth user yourself** in the Supabase dashboard, Authentication, Users, Add user,
+with **Auto Confirm User** ticked, and set the password there. Auto-confirm means the mailbox
+never has to receive anything, so an address like `reviewer1@amarigala.com` works even if no
+mail is routed to it. Doing it this way keeps the password out of every transcript, command
+line and log.
+
+**Then provision the member side:**
+
+```
+psql -w -v ON_ERROR_STOP=1 -v email=reviewer1@amarigala.com -v tier=silver -v days=14      -f scripts/reviewer-account-provision.sql
+```
+
+Dry run is the default. Add `-v dry_run=off` to apply. The script refuses any account holding an
+admin role, refuses platinum and laureate outright, writes a tracking row, and asserts the result
+before committing.
+
+**Tier.** `tier_level` is member 1, silver 2, gold 3. Pulse summary content needs 2 and full
+content needs 3. Aligned and the project map need gold and enforce it in the database. Silver is
+the working default: it gives a materially fuller review than member tier while still exposing no
+real member names, employers or project detail. Gold exposes all three for 23 real people.
+
+**The tester's path, once you send them the credentials:** install AMARI from the App Store, swipe
+through onboarding to the invitation step, tap **Already a member? Sign in**, then tap **Reviewer
+password access**, enter the email and password, and Sign In.
+
+**Revoking.** `scripts/external-tester-revoke.sql` as below, and rotate the password in the
+Supabase dashboard at the same time, because a shared credential may have been passed on.
+
 ## Telling the candidate what to do
 
 For iOS: install AMARI from the App Store, open it, choose to enter an invitation code, paste the
