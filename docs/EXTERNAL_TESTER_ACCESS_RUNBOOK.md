@@ -63,11 +63,73 @@ to re-run after adding a name to the list.
 generates 192-bit codes automatically. It does not create a tracking record, so prefer the script
 when you want the revoke to be reliable later.
 
-## Shared reviewer account, when the tester cannot give you an email
+## When the tester cannot give you an email address
 
-Use this when a candidate is under an Upwork trial and should not be handing over a personal
-email address before a contract is agreed. It is iOS only, and on iOS it needs nothing from
-them at all, because the app is public on the App Store.
+This comes up with Upwork candidates, who should not be exchanging contact details before a
+contract is agreed. On iOS it costs you nothing, because the app is public on the App Store and
+there are two routes that need no address from them.
+
+### Preferred: an ordinary invitation, redeemed with Sign in with Apple
+
+`redeem_invitation_code` compares the signing-in address against the invitation's
+`recipient_email` and returns `email_mismatch` when they differ. It skips that check for any
+address ending `@privaterelay.appleid.com`. The carve-out comes from
+`supabase/migrations/20260521000001_allow_apple_private_relay_invites.sql` and survived the P0
+containment.
+
+So an ordinary code from the in-app Admin, Codes screen works, and the tester gives up nothing.
+
+**Issue the code.** Admin, then Codes. Name something like `Upwork Reviewer 1`. Email is only a
+label here: `admin_create_invitation_code` checks it is non-blank, lowercases it, stores it, and
+sends nothing. There is no format check and no mailbox is ever contacted, so
+`amariappreview@amarigroupau.com` works whether or not that mailbox exists. Tier `silver`.
+
+**Tier.** `tier_level` is member 1, silver 2, gold 3, platinum 4, laureate 5. Pulse summary
+content needs 2 and full content needs 3. Aligned and the project map need gold and enforce it in
+the database. Silver is the working default: a materially fuller review than member tier while
+still exposing no real member names, employers or project detail. Gold exposes all three for 23
+real people.
+
+**What to send them.**
+
+> Install AMARI from the App Store. Enter the code below when asked.
+>
+> On the sign-in screen choose **Continue with Apple**. Apple will ask whether to share or hide
+> your email. Choose **Hide My Email**. You do not need to give me an email address or to
+> receive anything.
+
+**The account still has an email; Apple supplies it.** The tester authenticates with their Apple
+ID. Apple returns an identity token carrying a generated `@privaterelay.appleid.com` address
+unique to this app, Supabase creates the account with it, and that is what lands in
+`public.members.email`. Nobody types an address and no code is emailed.
+
+**The one way it breaks.** If they tap **Share My Email**, their real address goes in, it does not
+match the invitation, and redemption fails with `email_mismatch`, leaving them signed in with no
+membership. Apple only offers the hide-or-share choice on first authorisation, so signing out does
+not give them another go. Recovery is on the phone: Settings, their name, Sign-In and Security,
+Sign in with Apple, AMARI, Stop Using Apple ID. The next sign-in offers the choice again.
+
+**Treat the code itself as the secret.** Because the relay exemption skips the email match, the
+code is redeemable by anyone who signs in with Apple and picks Hide My Email, not only the person
+you meant. One person, one channel, never pasted anywhere shared.
+
+**Caveat.** The Admin, Codes screen writes no `external_tester_access` row, so revoking depends on
+memory unless the tracking row is added afterwards.
+
+**Caveat that matters more.** Private relay addresses are team-scoped, exactly like Sign in with
+Apple `sub` values. A Team ID change during the Individual to Organization conversion would break
+these accounts along with every other Apple-authenticated member. Get Apple's answer on the Team
+ID in writing first.
+
+Verified end to end in code on 22 September 2026: `app/(auth)/register.tsx` calls
+`storePendingCode()` before `signInWithApple()`, `lib/appleAuth.ts` requests the email scope and
+passes the identity token to `signInWithIdToken`, and `providers/AuthProvider.tsx:199` then calls
+`redeem_invitation_code` with `state.user.email`, which for Hide My Email is the relay address.
+
+### Fallback: a shared reviewer password account
+
+Use this when the tester has no Apple ID, or later for Android. It is a shared credential rather
+than an individually attributable account, which is why the Apple route above is preferred.
 
 The app already supports it. `app/(auth)/invite.tsx` ships three sign-in modes and the third is
 reached by tapping **Reviewer password access**. It calls `signInWithPassword` with an email and
