@@ -4,7 +4,7 @@ Prepared 21 September 2026. Nothing in this plan has been applied. Production is
 
 The migration is `supabase/migrations/20260921000001_p0_invitation_containment.sql`. The rollback
 is `scripts/rollback-p0-invitation-containment.sql`. The regression suite is
-`supabase/tests/database/p0_invitation_containment.test.sql`.
+`supabase/verification/p0/p0_invitation_containment.test.sql`.
 
 ## What the live evidence established
 
@@ -247,7 +247,7 @@ and never as part of the same change that introduces it.
 
 ## Phase 6. Tests
 
-`supabase/tests/database/p0_invitation_containment.test.sql` covers eighteen assertions under real
+`supabase/verification/p0/p0_invitation_containment.test.sql` covers eighteen assertions under real
 roles and real JWT subjects. The service role is never used to demonstrate a client-side property.
 
 What has already been executed, and what has not. The migration, the rollback and the behavioural

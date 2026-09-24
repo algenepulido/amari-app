@@ -161,8 +161,8 @@ silver are refused the map.
 - `docs/P0_INVITATION_CONTAINMENT_PLAN.md`, design, threat model and object-by-object analysis.
 - `docs/P0_FIXTURE_FIDELITY_MANIFEST.md`, how the test fixture was proven faithful to production.
 - `scripts/verify-production-reviewer-prerequisites.sql`, the read-only verification script.
-- `supabase/tests/database/p0_invitation_containment.test.sql`, 45 assertions.
-- `supabase/tests/fixtures/`, production-faithful fixture and the authorisation matrix.
+- `supabase/verification/p0/p0_invitation_containment.test.sql`, 45 assertions.
+- `supabase/verification/p0/`, production-faithful fixture and the authorisation matrix.
 
 ## Lessons worth keeping
 
