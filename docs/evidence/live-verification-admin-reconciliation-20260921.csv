@@ -1,0 +1,7 @@
+section,subject,value
+by role,admin,3
+by role,owner,1
+reconciliation,admins_who_redeemed_an_admin_capable_invite,4
+reconciliation,admins_with_no_admin_capable_invite_redemption,0
+reconciliation,of_those_via_a_predictable_format_code,4
+total,admin_roles_rows,4

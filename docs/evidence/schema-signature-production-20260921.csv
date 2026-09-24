@@ -1,0 +1,44 @@
+kind,object,signature
+col,admin_roles.created_at,timestamp with time zone / timestamptz / nullable=YES
+col,admin_roles.member_id,uuid / uuid / nullable=NO
+col,admin_roles.role,text / text / nullable=NO
+col,invitation_codes.code,text / text / nullable=NO
+col,invitation_codes.code_hash,text / text / nullable=YES
+col,invitation_codes.code_prefix,text / text / nullable=YES
+col,invitation_codes.created_at,timestamp with time zone / timestamptz / nullable=YES
+col,invitation_codes.expires_at,timestamp with time zone / timestamptz / nullable=NO
+col,invitation_codes.grants_admin,boolean / bool / nullable=NO
+col,invitation_codes.id,bigint / int8 / nullable=NO
+col,invitation_codes.invite_source,text / text / nullable=NO
+col,invitation_codes.issued_at,timestamp with time zone / timestamptz / nullable=YES
+col,invitation_codes.issued_by,uuid / uuid / nullable=YES
+col,invitation_codes.recipient_email,text / text / nullable=YES
+col,invitation_codes.recipient_name,text / text / nullable=YES
+col,invitation_codes.staff_role_grant,text / text / nullable=YES
+col,invitation_codes.tier_grant,USER-DEFINED / membership_tier / nullable=YES
+col,invitation_codes.used_at,timestamp with time zone / timestamptz / nullable=YES
+col,invitation_codes.used_by,uuid / uuid / nullable=YES
+col,members.city,text / text / nullable=YES
+col,members.created_at,timestamp with time zone / timestamptz / nullable=YES
+col,members.email,text / text / nullable=NO
+col,members.full_name,text / text / nullable=NO
+col,members.id,uuid / uuid / nullable=NO
+col,members.industry,text / text / nullable=YES
+col,members.status,USER-DEFINED / member_status / nullable=NO
+col,members.tier,USER-DEFINED / membership_tier / nullable=NO
+col,rate_limits.created_at,timestamp with time zone / timestamptz / nullable=YES
+col,rate_limits.endpoint,text / text / nullable=NO
+col,rate_limits.id,bigint / int8 / nullable=NO
+enum,member_status,"pending,active,suspended,inactive"
+enum,membership_tier,"member,silver,gold,platinum,laureate"
+fn,"check_rate_limit(p_ip text, p_endpoint text, p_max_requests integer, p_window_minutes integer)",returns boolean / secdef=true / lang=plpgsql
+fn,cleanup_rate_limits(),returns void / secdef=false / lang=sql
+fn,generate_share_invite_code(p_prefix text),returns text / secdef=true / lang=plpgsql
+fn,get_member_tier(),returns membership_tier / secdef=true / lang=plpgsql
+fn,is_active_member(),returns boolean / secdef=true / lang=sql
+fn,is_admin(),returns boolean / secdef=true / lang=sql
+fn,map_countries(category_filter text),"returns TABLE(country_code text, country_name text, project_count integer, categories jsonb, lat double precision, lng double precision) / secdef=true / lang=sql"
+fn,"map_projects(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)","returns TABLE(project_id uuid, name text, description text, category text, creator_first_name text, display_label text, image_url text, external_link text, lat double precision, lng double precision) / secdef=true / lang=sql"
+fn,"map_states(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)","returns TABLE(state_province text, display_label text, project_count integer, categories jsonb, lat double precision, lng double precision) / secdef=true / lang=sql"
+fn,"redeem_invitation_code(p_code text, p_user_id uuid, p_full_name text, p_email text, p_city text, p_industry text)",returns jsonb / secdef=true / lang=plpgsql
+fn,validate_invitation_code(p_code text),returns jsonb / secdef=true / lang=plpgsql

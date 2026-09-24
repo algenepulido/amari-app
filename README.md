@@ -1,5 +1,25 @@
 # AMARI Mobile App
 
+> ## Production security change, 22 September 2026
+>
+> A P0 invitation vulnerability was found live and **contained in production** on
+> 2026-09-22T01:15Z. Invitation codes, invitation grants, the three map functions and
+> function privileges all changed. **Read `docs/SECURITY-P0-CONTAINMENT-2026-09-22.md`
+> before touching any of them.**
+>
+> The short version, because these will mislead you otherwise:
+> the predictable bootstrap codes are all **expired** (1,216 of them, so 2,029 expired rows
+> is correct, not corruption); new invite codes are **48 characters** after the prefix, not 8;
+> `redeem_invitation_code` now binds to `auth.uid()` and refuses a mismatched `p_user_id`;
+> `anon` and PUBLIC are revoked from redemption, the map trio and the rate limit pair, with
+> `anon` retaining only `validate_invitation_code`; the map functions now enforce active
+> membership at gold or above **server side**; and new functions in `public` no longer default
+> to a PUBLIC grant.
+>
+> **Never run section 1 of `scripts/rollback-p0-invitation-containment.sql`** — it would revive
+> all 1,216 weak invitations.
+
+
 An invite-only mobile app for the African diaspora professional community —
 Australia first. React Native (Expo SDK 54) with a Supabase backend.
 

@@ -1,0 +1,170 @@
+section,subject,metric,value
+0 context,database,current_database,postgres
+0 context,database,server_version,"PostgreSQL 17.6 on aarch64-unknown-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit"
+0 context,database,run_at_utc,2026-09-22 01:13:41.184294
+0 context,roles,anon_role_exists,true
+0 context,roles,authenticated_role_exists,true
+0 context,roles,service_role_exists,true
+1 invitations,all codes,total_rows,2053
+1 invitations,all codes,valid_unused,1216
+1 invitations,all codes,redeemed,24
+1 invitations,all codes,unused_but_expired,813
+1 invitations,all codes,rows_where_plaintext_code_column_not_null,2053
+1 invitations,ADMIN CAPABLE,valid_unused_admin_capable,9
+1 invitations,ADMIN CAPABLE,expired_unused_admin_capable,6
+1 invitations,ADMIN CAPABLE,redeemed_admin_capable,4
+1 invitations,predictable format,valid_unused_predictable_format,1209
+1 invitations,predictable format,VALID_UNUSED_PREDICTABLE_AND_ADMIN_CAPABLE,8
+1 invitations,bootstrap source,valid_unused_bootstrap,1209
+1 invitations,by tier: gold,valid_unused,1
+1 invitations,by tier: laureate,valid_unused,59
+1 invitations,by tier: member,valid_unused,600
+1 invitations,by tier: platinum,valid_unused,198
+1 invitations,by tier: silver,valid_unused,358
+2 secdef summary,public schema,functions_total,798
+2 secdef summary,public schema,security_definer_total,67
+2 secdef summary,public schema,secdef_executable_by_public,15
+2 secdef summary,public schema,secdef_executable_by_anon,16
+2 secdef summary,public schema,secdef_executable_by_authenticated,54
+2 secdef summary,public schema,secdef_without_search_path,8
+2 secdef summary,public schema,secdef_anon_callable_without_auth_uid,13
+2 secdef inventory,acknowledge_monthly_invite_announcement(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"admin_create_invitation_code(p_recipient_name text, p_recipient_email text, p_tier membership_tier, p_grants_admin boolean, p_staff_role text, p_expires_at timestamp with time zone)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"admin_set_member_status(p_member_id uuid, p_status member_status, p_reason text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"admin_set_project_status(p_project_id uuid, p_status project_status, p_reason text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"aligned_decide(p_match_id bigint, p_member_id uuid, p_decision text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"aligned_discovery_tiles(p_type text, p_limit integer)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,aligned_express_interest(p_tile_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"append_article_entity(p_url_hash text, p_entity text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,apply_aligned_tile_submission_defaults(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,cancel_event_rsvp(p_event_id bigint),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"change_member_tier(p_member_id uuid, p_new_tier membership_tier, p_reason text, p_changed_by uuid)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"check_rate_limit(p_ip text, p_endpoint text, p_max_requests integer, p_window_minutes integer)",owner=postgres search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,connect_with_member_barcode(p_token text),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"create_monthly_invite(p_recipient_name text, p_recipient_email text, p_tier membership_tier)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,ensure_daily_seed(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,fold_feed_affinities(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,generate_barcode_token(p_member_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,generate_share_invite_code(p_prefix text),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,generate_weekly_matches(),owner=postgres search_path=false acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,get_admin_role(p_member_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=true
+2 secdef inventory,get_aligned_connections(p_limit integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_aligned_tile_contact_details(p_tile_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_event_checkin_stats(p_event_id bigint),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_member_tier(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_monthly_invite_status(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_my_project_request(p_project_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"get_news_feed(p_limit integer, p_offset integer)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_pending_for_enrichment(p_limit integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,get_project_requests(p_project_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,get_pulse_edition(p_id integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,get_pulse_feed(p_limit integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,get_saved_articles(p_limit integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,is_active_member(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,is_admin(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=true admin_roles=true
+2 secdef inventory,is_pending_member(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,map_countries(category_filter text),owner=postgres search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"map_projects(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",owner=postgres search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"map_states(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",owner=postgres search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,notify_admins_of_issue(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,notify_project_engagement(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,onboarding_admin_aggregates(p_min_cohort integer),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,prevent_privileged_member_field_updates(),owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,record_news_events(p_events jsonb),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"redeem_invitation_code(p_code text, p_user_id uuid, p_full_name text, p_email text, p_city text, p_industry text)",owner=postgres search_path=true acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=true
+2 secdef inventory,refresh_map_cache(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,release_news_ai_budget_reservation(p_reservation_id uuid),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"release_news_pipeline_lease(p_pipeline text, p_lease_id uuid)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"renew_news_pipeline_lease(p_pipeline text, p_lease_id uuid, p_lease_seconds integer)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"report_issue(p_category text, p_message text, p_app_version text, p_platform text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,request_account_deletion(),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"request_project_contact(p_project_id uuid, p_message text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"reserve_news_ai_budget(p_month text, p_requested_usd numeric, p_allowed_usd numeric)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"respond_project_contact(p_request_id bigint, p_approve boolean)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"review_aligned_tile(p_tile_id uuid, p_decision text, p_reason text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"rsvp_to_event(p_event_id bigint, p_member_id uuid)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"set_entity_follow(p_entity_id bigint, p_follow boolean)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,set_feed_interests(p_tags text[]),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"set_issue_status(p_id bigint, p_status text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"settle_news_ai_budget(p_reservation_id uuid, p_input_tokens bigint, p_output_tokens bigint, p_actual_usd numeric)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"st_estimatedextent(text, text)",owner=supabase_admin search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"st_estimatedextent(text, text, text)",owner=supabase_admin search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"st_estimatedextent(text, text, text, boolean)",owner=supabase_admin search_path=false acl_default=false,public=true anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"submit_member_onboarding(p_investor_score numeric, p_founder_score numeric, p_operator_score numeric, p_creator_score numeric, p_domain_specialist_score numeric, p_artist_score numeric, p_time_focus text, p_current_stage text, p_community_need text, p_consent_version text)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,toggle_saved_article(p_article_id bigint),owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+2 secdef inventory,"try_acquire_news_pipeline_lease(p_pipeline text, p_lease_seconds integer)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=false service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,validate_invitation_code(p_code text),owner=postgres search_path=true acl_default=false,public=false anon=true authenticated=true service_role=true auth_uid=false admin_roles=false
+2 secdef inventory,"verify_barcode(p_token text, p_event_id bigint)",owner=postgres search_path=true acl_default=false,public=false anon=false authenticated=true service_role=true auth_uid=true admin_roles=false
+3 high risk named,"admin_create_invitation_code(p_recipient_name text, p_recipient_email text, p_tier membership_tier, p_grants_admin boolean, p_staff_role text, p_expires_at timestamp with time zone)",returns=jsonb secdef=true search_path=true auth_uid=true admin_roles=false,public=false anon=false authenticated=true body_md5=d5ef3bc502fff458ef5ded66cf9941b1
+3 high risk named,"admin_set_member_status(p_member_id uuid, p_status member_status, p_reason text)",returns=jsonb secdef=true search_path=true auth_uid=true admin_roles=false,public=false anon=false authenticated=true body_md5=b76da7becdf794c9155ad1ad33dd9ada
+3 high risk named,"change_member_tier(p_member_id uuid, p_new_tier membership_tier, p_reason text, p_changed_by uuid)",returns=jsonb secdef=true search_path=true auth_uid=true admin_roles=false,public=false anon=false authenticated=true body_md5=6461f44005226386dcdcc2691fe0b21e
+3 high risk named,"check_rate_limit(p_ip text, p_endpoint text, p_max_requests integer, p_window_minutes integer)",returns=boolean secdef=true search_path=false auth_uid=false admin_roles=false,public=true anon=true authenticated=true body_md5=6d218df545d5048f3ac81ee2231d6f1e
+3 high risk named,cleanup_rate_limits(),returns=void secdef=false search_path=false auth_uid=false admin_roles=false,public=true anon=true authenticated=true body_md5=2d6a58fbdb823830569e86cbeae6f762
+3 high risk named,"create_monthly_invite(p_recipient_name text, p_recipient_email text, p_tier membership_tier)",returns=jsonb secdef=true search_path=true auth_uid=true admin_roles=false,public=false anon=false authenticated=true body_md5=6bf2b43b5da60becb947bb3edb0612ec
+3 high risk named,custom_access_token_hook(event jsonb),returns=jsonb secdef=false search_path=false auth_uid=false admin_roles=true,public=false anon=false authenticated=false body_md5=6c0bd4d6fcfb52cb567be2f759643cd3
+3 high risk named,get_member_tier(),returns=membership_tier secdef=true search_path=true auth_uid=true admin_roles=false,public=true anon=true authenticated=true body_md5=53702b348725ba5eeeebb607548f533a
+3 high risk named,is_active_member(),returns=boolean secdef=true search_path=true auth_uid=true admin_roles=false,public=true anon=true authenticated=true body_md5=9b442f9f1c9947fe5806b4adb875230e
+3 high risk named,is_admin(),returns=boolean secdef=true search_path=true auth_uid=true admin_roles=true,public=true anon=true authenticated=true body_md5=a547c803ae402cd8c210df550fdb9961
+3 high risk named,map_countries(category_filter text),returns=record secdef=true search_path=false auth_uid=false admin_roles=false,public=true anon=true authenticated=true body_md5=9440f455ca5f991ece7cf6b7249dbdc8
+3 high risk named,"map_projects(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",returns=record secdef=true search_path=false auth_uid=false admin_roles=false,public=true anon=true authenticated=true body_md5=c8ed85f6dd8c7a38d690ddbd340b2812
+3 high risk named,"map_states(min_lat double precision, min_lng double precision, max_lat double precision, max_lng double precision, category_filter text)",returns=record secdef=true search_path=false auth_uid=false admin_roles=false,public=true anon=true authenticated=true body_md5=986bce7d881980b8825d0897d69c3d83
+3 high risk named,"redeem_invitation_code(p_code text, p_user_id uuid, p_full_name text, p_email text, p_city text, p_industry text)",returns=jsonb secdef=true search_path=true auth_uid=false admin_roles=true,public=true anon=true authenticated=true body_md5=fe95ee932847f191910bee76667b3411
+3 high risk named,validate_invitation_code(p_code text),returns=jsonb secdef=true search_path=true auth_uid=false admin_roles=false,public=false anon=true authenticated=true body_md5=1fbe69ce0e308ff3e03ef34f64287e3d
+3 tier or admin writers,"admin_set_member_status(p_member_id uuid, p_status member_status, p_reason text)",secdef=true auth_uid=true is_admin_check=true,anon=false authenticated=true public=false
+3 tier or admin writers,"change_member_tier(p_member_id uuid, p_new_tier membership_tier, p_reason text, p_changed_by uuid)",secdef=true auth_uid=true is_admin_check=true,anon=false authenticated=true public=false
+3 tier or admin writers,custom_access_token_hook(event jsonb),secdef=false auth_uid=false is_admin_check=true,anon=false authenticated=false public=false
+3 tier or admin writers,get_admin_role(p_member_id uuid),secdef=true auth_uid=true is_admin_check=false,anon=false authenticated=true public=false
+3 tier or admin writers,is_admin(),secdef=true auth_uid=true is_admin_check=false,anon=true authenticated=true public=true
+3 tier or admin writers,"redeem_invitation_code(p_code text, p_user_id uuid, p_full_name text, p_email text, p_city text, p_industry text)",secdef=true auth_uid=false is_admin_check=true,anon=true authenticated=true public=true
+3 rate limiting present,"check_rate_limit(p_ip text, p_endpoint text, p_max_requests integer, p_window_minutes integer)",name matches rate limit,anon=true authenticated=true
+3 rate limiting present,cleanup_rate_limits(),name matches rate limit,anon=true authenticated=true
+4 rls summary,public schema,tables_total,47
+4 rls summary,public schema,tables_without_rls,1
+4 rls summary,public schema,tables_with_rls_but_no_policy,12
+4 rls detail,admin_roles,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,aligned_history,rls=true forced=false policies=0,roles=none
+4 rls detail,aligned_interests,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,aligned_matches,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,aligned_reports,rls=true forced=false policies=0,roles=none
+4 rls detail,aligned_skips,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,aligned_tiles,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,barcode_revocations,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,barcode_seeds,rls=true forced=false policies=0,roles=none
+4 rls detail,city_presence,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,connections,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,corridor_interests,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,corridor_opportunities,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,dead_letter_queue,rls=true forced=false policies=0,roles=none
+4 rls detail,event_rsvps,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,events,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,invitation_codes,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,issue_reports,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,map_cache_countries,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,map_cache_projects,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,map_cache_states,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,member_entity_follows,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,member_feed_interests,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,member_monthly_invites,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,member_onboarding_evidence_ledger,rls=true forced=false policies=0,roles=none
+4 rls detail,member_onboarding_responses,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,member_onboarding_snapshots,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,members,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,news_ai_budget_reservations,rls=true forced=false policies=0,roles=none
+4 rls detail,news_ai_spend,rls=true forced=false policies=0,roles=none
+4 rls detail,news_articles,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,news_events,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,news_pipeline_leases,rls=true forced=false policies=0,roles=none
+4 rls detail,news_sources,rls=true forced=false policies=0,roles=none
+4 rls detail,notifications,rls=true forced=false policies=2,roles=authenticated
+4 rls detail,project_bookmarks,rls=true forced=false policies=1,roles=public
+4 rls detail,project_contact_requests,rls=true forced=false policies=0,roles=none
+4 rls detail,project_updates,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,projects,rls=true forced=false policies=3,"roles=authenticated,public"
+4 rls detail,pulse_editions,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,push_log,rls=true forced=false policies=0,roles=none
+4 rls detail,rate_limits,rls=true forced=false policies=0,roles=none
+4 rls detail,region_centroids,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,saved_articles,rls=true forced=false policies=1,roles=authenticated
+4 rls detail,spatial_ref_sys,rls=false forced=false policies=0,roles=none
+4 rls detail,tier_changes,rls=true forced=false policies=3,roles=authenticated
+4 rls detail,tracked_entities,rls=true forced=false policies=1,roles=authenticated

@@ -1,5 +1,18 @@
 # AMARI Mobile Security Hardening Roadmap
 
+> **Correction, 22 September 2026.** Two claims below were wrong when written and are still wrong.
+>
+> The line under Current Security Foundations saying invite-code validation sits behind
+> "hash lookup and rate limiting" is **false**. The rate limit was removed on 4 May 2026 by
+> `20260504000007_invite_validation_rate_limit_fix.sql`, six days after this document was written,
+> and was never replaced. `check_rate_limit` is now revoked from all application roles and is called
+> from nowhere. Anonymous abuse limiting on `validate_invitation_code` remains **outstanding**.
+>
+> The P0 standard stated further down, that functions accepting user identifiers must prove
+> `auth.uid()` matches, was **not** met by `redeem_invitation_code` until 22 September 2026. It is
+> met now. See `docs/SECURITY-P0-CONTAINMENT-2026-09-22.md`.
+
+
 Last updated: 2026-04-28
 
 ## Goal
