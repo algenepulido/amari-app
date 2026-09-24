@@ -20,6 +20,19 @@ Applied to production **2026-09-22T01:15:06Z**, committed `01:15:09Z`, exit code
 > will not re-run. Wherever administrators exist the smoke test still runs and still rolls the
 > migration back if the guard is wrong.
 
+> **The sibling migration needed the same treatment.**
+> `supabase/migrations/20260922000002_short_codes_and_validation_throttle.sql` asserted
+> `member count changed to %, expected 23` and an administrator count of 4. Those were correct as
+> a guard on a production run and wrong as migration invariants, for the same reason: a freshly
+> built database has neither. It now captures both counts at the start of its transaction and
+> asserts they are unchanged at the end, which holds on production and on an empty database alike.
+> It ran against production as SHA-256
+> `d6f2b58b19bc29d2773a567f2a8bcabbcff2353932218f4e2f7d68139abc0841`, 8,557 bytes, and the file is
+> now `3340ac057fed10b8114fd4d883e931737db914aec3a119546df1d8600ad3ee36`, 9,601 bytes.
+>
+> The containment migration already compared against a captured baseline rather than fixed
+> numbers, which is why its membership assertions needed no change.
+
 ## Why this happened
 
 Production had a complete path from an unauthenticated stranger to an `admin_roles` row.

@@ -28,6 +28,19 @@
 begin;
 
 -- ---------------------------------------------------------------------------
+-- 0. Capture the membership counts before anything changes.
+--
+--    This migration touches invitation_codes, rate_limits and two functions.
+--    It has no business moving membership, and the assertions at the end prove
+--    it did not. Captured rather than hard coded, because a migration has to be
+--    able to run on any database: a freshly built one has no members at all,
+--    and asserting a production number there is a false failure.
+-- ---------------------------------------------------------------------------
+create temp table shortcode_before on commit drop as
+select (select count(*) from public.members)     as members,
+       (select count(*) from public.admin_roles) as admins;
+
+-- ---------------------------------------------------------------------------
 -- 1. Generator: six Crockford base32 characters
 -- ---------------------------------------------------------------------------
 create or replace function public.generate_share_invite_code(p_prefix text default 'AMARI-INV')
@@ -212,14 +225,17 @@ begin
     raise exception 'invitation 2068 is still valid and unused';
   end if;
 
-  -- Nothing about membership may move.
+  -- Nothing about membership may move. Compared against what this transaction
+  -- started with, so it holds on production and on an empty database alike.
   select count(*) into v_members from public.members;
   select count(*) into v_admins  from public.admin_roles;
-  if v_members <> 23 then
-    raise exception 'member count changed to %, expected 23', v_members;
+  if v_members <> (select members from shortcode_before) then
+    raise exception 'member count moved from % to %',
+      (select members from shortcode_before), v_members;
   end if;
-  if v_admins <> 4 then
-    raise exception 'administrator count changed to %, expected 4', v_admins;
+  if v_admins <> (select admins from shortcode_before) then
+    raise exception 'administrator count moved from % to %',
+      (select admins from shortcode_before), v_admins;
   end if;
 
   raise notice 'short codes live: 6 Crockford characters, validation throttled at % per caller per 10 min and % globally per minute, invitation 2068 expired',
