@@ -7,6 +7,19 @@ Applied to production **2026-09-22T01:15:06Z**, committed `01:15:09Z`, exit code
 `supabase/migrations/20260921000001_p0_invitation_containment.sql`, SHA-256
 `38e3142ef20602ef82fb9b2e365b932bf0e6481399f58e876a3a2634e0e1bd39`, 27,290 bytes.
 
+> **Amended 24 September 2026, after deployment.** The file on disk is now SHA-256
+> `120016c798cb9e2ab7aa0f29b9c877a4afe18690f56f0428d9c2cd3dee8209c1`, 27,697 bytes. The hash above
+> remains the record of what actually executed against production and is not superseded.
+>
+> The map smoke test raised `no administrator exists to run the map smoke test as` whenever
+> `public.admin_roles` was empty. Production held four administrators so it ran there, but a
+> freshly built database has no seed data, so the migration could not replay and CI failed on
+> every run. The smoke test now skips with a notice in that case and is otherwise unchanged.
+>
+> Production is unaffected. Supabase records applied migrations by version, so the amended file
+> will not re-run. Wherever administrators exist the smoke test still runs and still rolls the
+> migration back if the guard is wrong.
+
 ## Why this happened
 
 Production had a complete path from an unauthenticated stranger to an `admin_roles` row.
