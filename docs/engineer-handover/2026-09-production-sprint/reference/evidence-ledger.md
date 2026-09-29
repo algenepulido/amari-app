@@ -1,4 +1,4 @@
-# Source evidence ledger
+# Evidence ledger
 
 Every material claim in this pack, with where to check it. Paths are relative to the repository
 root at commit `3ce4c4c` unless stated. Migration files are named by their numeric prefix; the full

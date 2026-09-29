@@ -1,4 +1,4 @@
-# Media V1: current state and gap plan
+# Media V1
 
 Media V1 is a core sprint deliverable. At commit `3ce4c4c` almost none of it exists. This file
 states exactly what does, what is missing, and the decisions needed before building. It does not

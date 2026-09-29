@@ -1,8 +1,8 @@
-# Feature-by-feature technical review
+# Features
 
 Commit `3ce4c4c`. This is the feature review Algene asked for. No earlier stand-alone feature review
 was found; the closest predecessor is the feature inventory inside the 5 September readiness report,
-reconciled here and in `06`.
+reconciled here and in `SECURITY.md`.
 
 **How to read the status column.** A component existing is not readiness. Status uses: IMPLEMENTED
 IN SOURCE (code path exists end to end, not proven at runtime), PARTIAL (a link in the chain is
@@ -110,7 +110,7 @@ Migration files are cited by their numeric prefix.
 ### Google sign-in
 - **Status:** PARTIAL on iOS.
 - **Files:** `lib/googleAuth.ts`. Native flow on Android; on iOS the native flow only configures when `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` is set (`lib/googleAuth.ts:30-33`), which `eas.json` does not set. Otherwise `signInWithOAuth` opens a browser session back to `https://www.amarigroupau.com/auth-callback`, which must then hand off to `amari://auth-callback`.
-- **Known issues:** the fallback depends on the website callback page and the custom scheme; see `09`. After a failed native sign-in the code silently falls back to the browser (`lib/googleAuth.ts:88-97`).
+- **Known issues:** the fallback depends on the website callback page and the custom scheme; see `ARCHITECTURE.md`. After a failed native sign-in the code silently falls back to the browser (`lib/googleAuth.ts:88-97`).
 - **Tests:** none. **Device:** NONE RECORDED. **Priority:** P0.
 
 ### Email OTP and magic link
@@ -121,7 +121,7 @@ Migration files are cited by their numeric prefix.
 
 ### Reviewer password sign-in
 - **Status:** IMPLEMENTED IN SOURCE. The "Reviewer password access" toggle is rendered to everyone on the invitation screen (`app/(auth)/invite.tsx:427`) and calls `signInWithPassword`.
-- **Known issues:** exposes a password path in production UI; whether email and password sign-in is enabled in the Auth dashboard is EXTERNAL. Useful for test identities (see `12`).
+- **Known issues:** exposes a password path in production UI; whether email and password sign-in is enabled in the Auth dashboard is EXTERNAL. Useful for test identities (see `SETUP.md`).
 - **Priority:** P1.
 
 ### Onboarding
@@ -250,7 +250,7 @@ Migration files are cited by their numeric prefix.
 - **Status:** PARTIAL. Only `amari://auth-callback` is handled explicitly (`app/_layout.tsx:429-445`, `app/(auth)/auth-callback.tsx`). No universal links or Android App Links are configured (`app.json` has no `associatedDomains` or `intentFilters`). The callback accepts tokens from any URL with that path (HO-12). **Priority:** P0 for the auth return path.
 
 ### Media, audio and video
-- **Status:** NOT BUILT. See `13`. **Priority:** P1, core deliverable.
+- **Status:** NOT BUILT. See `MEDIA_V1.md`. **Priority:** P1, core deliverable.
 
 ### Admin console
 - **Status:** IMPLEMENTED IN SOURCE. `app/(tabs)/admin.tsx` plus `app/admin/` screens: `members` (tier and status), `codes` (invitations), `events` (create, with image upload to `public`, HO-09), `checkin`, `aligned` (tile and project review), `pulse` (editions), `issues`. Client gate at `app/admin/_layout.tsx:18-28`; server gates are `is_admin()` checks and admin policies. **Known issues:** HO-07 suspended administrators. **Priority:** P1.
