@@ -110,7 +110,7 @@ token rather than a copy of that file.
 | pgTAP | `supabase db start` then `supabase test db` | Not run locally; passed in CI run 35967017046 on `3ce4c4c`, 24 Sep 2026 |
 | Release verifier | `npm run verify:release` | Runs on every push via husky |
 | P0 suite | See `supabase/verification/p0/README.md` | Manual, Docker |
-| Mobile flow script | `npm run test:mobile-flows` | Do not run as is: `scripts/verify-mobile-flows.mjs` embeds a burned production invitation code and a named person's email, and targets production |
+| Mobile flow script | `npm run test:mobile-flows` | Safe: static source checks only, no network calls; also runs inside `verify:release` on every push. Its `--manual` and tester modes print test scripts that embed an already-redeemed production invitation code and a named person's email; do not share that output |
 | Production dependency audit | `npm audit --omit=dev` | OBSERVED: 34 advisories, 2 critical, 10 high. Whether any reaches the shipped bundle is UNVERIFIED |
 
 ### EAS build profiles

@@ -76,10 +76,10 @@ SECURE-CODES-DO-NOT-COMMIT.csv
 *.apk
 
 # Build docs (generated, not source)
-AMARI-FRESH-BUILD.md
-ARCHITECTURE.md
-BETA_TESTING.md
-BUILD_ANDROID.md
+/AMARI-FRESH-BUILD.md
+/ARCHITECTURE.md
+/BETA_TESTING.md
+/BUILD_ANDROID.md
 
 # Design preview (local only)
 preview/
