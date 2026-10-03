@@ -35,5 +35,10 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // HO-12: use PKCE so an OAuth return carries a one-time `code` bound to a
+    // verifier stored on this device, rather than raw tokens in the URL. This,
+    // together with authCallback no longer accepting raw access/refresh tokens
+    // from a URL, closes the auth-callback login-injection path.
+    flowType: 'pkce',
   },
 });

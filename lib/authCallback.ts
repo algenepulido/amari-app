@@ -29,19 +29,17 @@ export async function completeAuthFromUrl(url: string): Promise<AuthCallbackResu
     throw new Error(params.get('error_description') || error);
   }
 
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-
-  if (accessToken && refreshToken) {
-    const { error: sessionError } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
-    if (sessionError) throw sessionError;
-    return { handled: true, sessionEstablished: true };
-  }
-
+  // HO-12: do not accept a raw access_token / refresh_token from the URL.
+  // The previous version handed those straight to supabase.auth.setSession, so any
+  // crafted amari://auth-callback#access_token=...&refresh_token=... link (opened from
+  // another app, a message, or a QR code) could sign the app into an attacker-controlled
+  // session. The only session-establishing inputs accepted now are:
+  //   - the PKCE `code`, which exchangeCodeForSession verifies against a code_verifier
+  //     stored on this device, so a forged code cannot complete; and
+  //   - the email `token_hash`, which verifyOtp validates server-side against the address
+  //     the link was issued to.
+  // Both are bound to this device or to a server-issued secret, so a forged link cannot
+  // establish a session.
   const code = params.get('code');
   if (code) {
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
