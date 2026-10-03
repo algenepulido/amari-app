@@ -1,8 +1,10 @@
 // Sentry monitoring — @sentry/react-native is NOT installed yet.
 // Every export here is a guarded no-op until the dependency is added
-// (npx expo install @sentry/react-native) AND a SENTRY_DSN env var is set.
-// No hard import of @sentry/react-native anywhere in this file — only a
-// guarded dynamic require, so the app builds and runs fine without it.
+// (npx expo install @sentry/react-native) AND an EXPO_PUBLIC_SENTRY_DSN env var is set.
+// Expo only inlines EXPO_PUBLIC_-prefixed variables into the client bundle, so the DSN
+// must use that prefix or it is undefined at runtime (HO-14). No hard import of
+// @sentry/react-native anywhere in this file — only a guarded dynamic require, so the
+// app builds and runs fine without it.
 
 type SentryClient = {
   init: (options: Record<string, unknown>) => void;
@@ -18,7 +20,7 @@ let sentryClient: SentryClient | null = null;
 export function initSentry(): void {
   if (sentryClient) return; // already initialized
 
-  const dsn = process.env.SENTRY_DSN;
+  const dsn = process.env.EXPO_PUBLIC_SENTRY_DSN;
   if (!dsn) return;
 
   try {
