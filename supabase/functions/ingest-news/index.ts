@@ -81,10 +81,8 @@ async function isAuthorized(req: Request): Promise<boolean> {
     accessToken,
   );
   if (userError || !user) return false;
-  const { data: adminRole } = await memberClient.from("admin_roles").select(
-    "member_id",
-  ).eq("member_id", user.id).maybeSingle();
-  return Boolean(adminRole);
+  const { data: isAdmin } = await memberClient.rpc("is_admin");
+  return Boolean(isAdmin);
 }
 
 async function processSource(

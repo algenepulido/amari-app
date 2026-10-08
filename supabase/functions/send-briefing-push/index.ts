@@ -39,9 +39,8 @@ async function isAuthorized(req: Request): Promise<boolean> {
   });
   const { data: { user }, error } = await memberClient.auth.getUser(accessToken);
   if (error || !user) return false;
-  const { data: adminRole } = await memberClient
-    .from('admin_roles').select('member_id').eq('member_id', user.id).maybeSingle();
-  return Boolean(adminRole);
+  const { data: isAdmin } = await memberClient.rpc('is_admin');
+  return Boolean(isAdmin);
 }
 
 Deno.serve(async (req: Request) => {

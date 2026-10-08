@@ -45,17 +45,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Unauthorized' }, 401);
     }
 
-    const { data: adminRole, error: adminError } = await memberClient
-      .from('admin_roles')
-      .select('member_id')
-      .eq('member_id', user.id)
-      .maybeSingle();
+    const { data: isAdmin, error: adminError } = await memberClient.rpc('is_admin');
 
     if (adminError) {
       throw adminError;
     }
 
-    if (!adminRole) {
+    if (!isAdmin) {
       return jsonResponse({ error: 'Forbidden' }, 403);
     }
 

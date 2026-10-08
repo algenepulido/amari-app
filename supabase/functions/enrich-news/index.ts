@@ -97,13 +97,9 @@ async function isAuthorized(req: Request): Promise<boolean> {
 
   if (userError || !user) return false;
 
-  const { data: adminRole } = await memberClient
-    .from('admin_roles')
-    .select('member_id')
-    .eq('member_id', user.id)
-    .maybeSingle();
+  const { data: isAdmin } = await memberClient.rpc('is_admin');
 
-  return Boolean(adminRole);
+  return Boolean(isAdmin);
 }
 
 async function getBudgetState(
