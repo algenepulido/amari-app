@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useRef, useState, PropsWithChildren } from 'react';
+import { AppState } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 import { queryClient, queryKeys } from '@/lib/queryClient';
-
-type MembershipTier = 'member' | 'silver' | 'platinum' | 'laureate';
+import type { MembershipTier } from '@/lib/theme';
 
 interface AuthState {
   session: Session | null;
@@ -45,6 +45,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAdmin: appMeta?.is_admin === true,
     };
   }
+
+  // Derive the effective tier and admin flag from live membership, so a downgrade or
+  // suspension takes effect without waiting for the access token to refresh. The token
+  // value above is only the first-paint hint; on any failure that value is kept.
+  const applyEffectiveTier = async (userId: string) => {
+    try {
+      const [tierRes, adminRes] = await Promise.all([
+        supabase.rpc('get_member_tier'),
+        supabase.rpc('is_admin'),
+      ]);
+      if (tierRes.error) return;
+      const tier = (tierRes.data as MembershipTier) || 'member';
+      const isAdmin = !adminRes.error && adminRes.data === true;
+      setState(prev => (prev.user?.id === userId ? { ...prev, tier, isAdmin } : prev));
+    } catch {
+      // keep the token-derived tier
+    }
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -92,6 +110,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Keep the effective tier aligned with live membership: refresh it whenever the
+  // signed-in user changes and each time the app returns to the foreground.
+  useEffect(() => {
+    const userId = state.user?.id;
+    if (!userId) return;
+    applyEffectiveTier(userId);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') applyEffectiveTier(userId);
+    });
+    return () => sub.remove();
+  }, [state.user?.id]);
 
   // Sync profile data from user_metadata / SecureStore to the members table.
   // Covers cases where the member row exists but has empty fields:
@@ -258,6 +288,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         },
         async (payload: any) => {
           if (payload.new.type === 'tier_change') {
+            if (state.user) await applyEffectiveTier(state.user.id);
             await supabase.auth.refreshSession();
           }
         }
