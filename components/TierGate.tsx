@@ -1,10 +1,9 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useAuth } from '@/providers/AuthProvider';
 import { useRouter } from 'expo-router';
-import { colors, typography, spacing } from '@/lib/theme';
+import { colors, typography, spacing, TIER_LEVELS } from '@/lib/theme';
 
-const TIER_LEVELS = { member: 1, silver: 2, platinum: 3, laureate: 4 };
-const TIER_NAMES = { member: 'Member', silver: 'Silver', platinum: 'Platinum', laureate: 'Laureate' };
+const TIER_NAMES: Record<string, string> = { member: 'Member', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', laureate: 'Laureate' };
 
 interface TierGateProps {
   minTier: keyof typeof TIER_LEVELS;

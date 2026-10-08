@@ -9,7 +9,7 @@ export default function AlignedLayout() {
   const router = useRouter();
 
   const userLevel = TIER_LEVELS[tier as keyof typeof TIER_LEVELS] ?? 0;
-  const requiredLevel = TAB_VISIBILITY.aligned; // 3 = platinum
+  const requiredLevel = TAB_VISIBILITY.aligned; // 3 = gold
 
   if (isLoading) {
     return (
@@ -23,7 +23,7 @@ export default function AlignedLayout() {
     return (
       <View style={styles.gate}>
         <Text style={styles.gateTitle}>Aligned</Text>
-        <Text style={styles.gateMessage}>Available from Platinum membership.</Text>
+        <Text style={styles.gateMessage}>Available from Gold membership.</Text>
         <Pressable style={styles.gateBtn} onPress={() => router.back()}>
           <Text style={styles.gateBtnText}>Dismiss</Text>
         </Pressable>

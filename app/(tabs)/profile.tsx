@@ -431,6 +431,7 @@ export default function ProfileScreen() {
             <ProfileMembershipCard
               fullName={fullName}
               city={locationLabel}
+              tier={tier}
               tierLabel={tierLabel}
               displayId={displayId}
               onPress={async () => {

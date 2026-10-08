@@ -2,12 +2,13 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MotiView } from 'moti';
-import { colors, typography } from '@/lib/theme';
+import { colors, typography, type MembershipTier } from '@/lib/theme';
 import { AmariEmblem } from './AmariEmblem';
 
 interface ProfileMembershipCardProps {
   fullName: string;
   city?: string | null;
+  tier?: MembershipTier;
   tierLabel: string;
   displayId: string;
   onPress?: () => void;
@@ -31,10 +32,23 @@ type TierCardPalette = {
   tierTextColor: string;
 };
 
-function getTierPalette(tierLabel: string): TierCardPalette {
-  const normalized = tierLabel.toLowerCase();
+function resolveTierKey(tier?: string, tierLabel?: string): MembershipTier {
+  const value = (tier ?? '').toLowerCase();
+  if (value === 'laureate' || value === 'platinum' || value === 'gold' || value === 'silver' || value === 'member') {
+    return value as MembershipTier;
+  }
+  const label = (tierLabel ?? '').toLowerCase();
+  if (label.includes('laureate')) return 'laureate';
+  if (label.includes('platinum')) return 'platinum';
+  if (label.includes('gold')) return 'gold';
+  if (label.includes('silver')) return 'silver';
+  return 'member';
+}
 
-  if (normalized.includes('silver')) {
+function getTierPalette(tier?: string, tierLabel?: string): TierCardPalette {
+  const key = resolveTierKey(tier, tierLabel);
+
+  if (key === 'silver') {
     return {
       avatarColors: ['#F2F4F7', '#BCC4D0'],
       avatarTextColor: colors.black,
@@ -57,7 +71,7 @@ function getTierPalette(tierLabel: string): TierCardPalette {
     };
   }
 
-  if (normalized.includes('platinum')) {
+  if (key === 'platinum') {
     return {
       avatarColors: [colors.tierPlatinum, colors.gold],
       avatarTextColor: colors.white,
@@ -80,7 +94,7 @@ function getTierPalette(tierLabel: string): TierCardPalette {
     };
   }
 
-  if (normalized.includes('laureate')) {
+  if (key === 'laureate') {
     return {
       avatarColors: ['#F3DEB0', '#D8AF65'],
       avatarTextColor: colors.black,
@@ -103,31 +117,55 @@ function getTierPalette(tierLabel: string): TierCardPalette {
     };
   }
 
+  if (key === 'gold') {
+    return {
+      avatarColors: [colors.goldDark, colors.gold],
+      avatarTextColor: colors.black,
+      cardColors: [colors.cardBase, colors.cardDark, colors.cardWarm],
+      hintColor: 'rgba(255,255,255,0.44)',
+      locationColor: 'rgba(255,255,255,0.60)',
+      memberIdColor: 'rgba(255,255,255,0.48)',
+      orbGold: 'rgba(196,162,101,0.18)',
+      orbTeal: 'rgba(101,170,196,0.10)',
+      orbViolet: 'rgba(166,132,204,0.10)',
+      ringColors: [
+        'rgba(196,162,101,0.40)',
+        'rgba(166,132,204,0.18)',
+        'rgba(101,170,196,0.16)',
+        'rgba(196,162,101,0.36)',
+      ],
+      tierPillBackground: 'rgba(0,0,0,0.08)',
+      tierPillBorder: 'rgba(196,162,101,0.25)',
+      tierTextColor: colors.gold,
+    };
+  }
+
   return {
-    avatarColors: [colors.goldDark, colors.gold],
-    avatarTextColor: colors.black,
-    cardColors: [colors.cardBase, colors.cardDark, colors.cardWarm],
-    hintColor: 'rgba(255,255,255,0.44)',
-    locationColor: 'rgba(255,255,255,0.60)',
-    memberIdColor: 'rgba(255,255,255,0.48)',
-    orbGold: 'rgba(196,162,101,0.18)',
-    orbTeal: 'rgba(101,170,196,0.10)',
-    orbViolet: 'rgba(166,132,204,0.10)',
+    avatarColors: ['#4A4E57', '#2B2E34'],
+    avatarTextColor: colors.white,
+    cardColors: ['#191B20', '#101216', '#15171B'],
+    hintColor: 'rgba(255,255,255,0.40)',
+    locationColor: 'rgba(235,238,243,0.58)',
+    memberIdColor: 'rgba(228,232,238,0.44)',
+    orbGold: 'rgba(255,255,255,0.05)',
+    orbTeal: 'rgba(160,175,195,0.08)',
+    orbViolet: 'rgba(150,158,180,0.08)',
     ringColors: [
-      'rgba(196,162,101,0.40)',
-      'rgba(166,132,204,0.18)',
-      'rgba(101,170,196,0.16)',
-      'rgba(196,162,101,0.36)',
+      'rgba(214,218,226,0.24)',
+      'rgba(150,160,180,0.14)',
+      'rgba(120,132,154,0.10)',
+      'rgba(214,218,226,0.20)',
     ],
-    tierPillBackground: 'rgba(0,0,0,0.08)',
-    tierPillBorder: 'rgba(196,162,101,0.25)',
-    tierTextColor: colors.gold,
+    tierPillBackground: 'rgba(255,255,255,0.05)',
+    tierPillBorder: 'rgba(214,218,226,0.18)',
+    tierTextColor: 'rgba(226,230,236,0.92)',
   };
 }
 
 export function ProfileMembershipCard({
   fullName,
   city,
+  tier,
   tierLabel,
   displayId,
   onPress,
@@ -145,7 +183,7 @@ export function ProfileMembershipCard({
   }, [fullName]);
 
   const isExpanded = size === 'expanded';
-  const palette = useMemo(() => getTierPalette(tierLabel), [tierLabel]);
+  const palette = useMemo(() => getTierPalette(tier, tierLabel), [tier, tierLabel]);
 
   return (
     <Pressable
