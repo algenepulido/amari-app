@@ -121,6 +121,12 @@ export default function AdminScreen() {
       icon: '◈',
       route: '/admin/pulse' as const,
     },
+    {
+      title: 'Media',
+      subtitle: 'Upload audio and video',
+      icon: '►',
+      route: '/admin/media' as const,
+    },
   ];
 
   return (
