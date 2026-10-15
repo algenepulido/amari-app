@@ -615,6 +615,11 @@ export default function ProfileScreen() {
                   <AccountSectionLabel>Settings</AccountSectionLabel>
                   <View style={styles.accountCard}>
                     <AccountRow
+                      label="Media"
+                      value="Watch and listen"
+                      onPress={() => router.push('/media')}
+                    />
+                    <AccountRow
                       label="Edit profile"
                       value={fullName}
                       onPress={() =>
