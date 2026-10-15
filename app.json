@@ -73,7 +73,15 @@
           "RNMapboxMapsImpl": "mapbox"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native",
+        {
+          "url": "https://sentry.io/",
+          "organization": "1c619-foundry-labs",
+          "project": "amari-mobile"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
