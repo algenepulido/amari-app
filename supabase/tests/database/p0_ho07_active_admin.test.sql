@@ -13,9 +13,12 @@ insert into public.admin_roles (member_id, role) values
  ('dddd0000-0000-0000-0000-000000000001','admin'),
  ('dddd0000-0000-0000-0000-000000000002','admin');
 
--- get_admin_role honors active status
-select is( public.get_admin_role('dddd0000-0000-0000-0000-000000000001'::uuid), 'admin', 'HO-07: an active admin has an admin role' );
-select is( public.get_admin_role('dddd0000-0000-0000-0000-000000000002'::uuid), null, 'HO-07: a suspended admin has no admin role' );
+-- get_admin_role honors active status. get_admin_role now restricts lookups to the caller
+-- or an active admin, so each check runs with the member's own auth context.
+select set_config('request.jwt.claims','{"sub":"dddd0000-0000-0000-0000-000000000001","role":"authenticated"}', true);
+select is( public.get_admin_role(), 'admin', 'HO-07: an active admin has an admin role' );
+select set_config('request.jwt.claims','{"sub":"dddd0000-0000-0000-0000-000000000002","role":"authenticated"}', true);
+select is( public.get_admin_role(), null, 'HO-07: a suspended admin has no admin role' );
 
 -- access-token hook stamps is_admin from an active admin only
 select is(
