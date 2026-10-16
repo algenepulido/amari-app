@@ -1,10 +1,8 @@
-// Sentry monitoring — @sentry/react-native is NOT installed yet.
-// Every export here is a guarded no-op until the dependency is added
-// (npx expo install @sentry/react-native) AND an EXPO_PUBLIC_SENTRY_DSN env var is set.
-// Expo only inlines EXPO_PUBLIC_-prefixed variables into the client bundle, so the DSN
-// must use that prefix or it is undefined at runtime (HO-14). No hard import of
-// @sentry/react-native anywhere in this file — only a guarded dynamic require, so the
-// app builds and runs fine without it.
+// Sentry monitoring. @sentry/react-native is installed and wired through the Expo config
+// plugin. This file keeps a guarded dynamic require so the app still builds and runs if the
+// package is ever absent, and never throws. The DSN must use the EXPO_PUBLIC_ prefix, because
+// Expo only inlines those into the client bundle, or it is undefined at runtime (HO-14).
+// Events are scrubbed of user identity, emails and bearer tokens before they leave the device.
 
 type SentryClient = {
   init: (options: Record<string, unknown>) => void;
@@ -12,6 +10,40 @@ type SentryClient = {
 };
 
 let sentryClient: SentryClient | null = null;
+
+// Strip anything that could carry personal data before an event is sent: user identity beyond
+// an opaque id, authorization headers and cookies, and anything shaped like an email or a bearer
+// token in the message, the exception values and the breadcrumbs.
+const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+const BEARER_RE = /Bearer\s+[A-Za-z0-9._-]+/g;
+
+function redactText(value: unknown): unknown {
+  return typeof value === 'string'
+    ? value.replace(EMAIL_RE, '[email]').replace(BEARER_RE, 'Bearer [redacted]')
+    : value;
+}
+
+export function scrubSentryEvent(event: Record<string, any> | null): Record<string, any> | null {
+  if (!event) return event;
+  if (event.user) {
+    event.user = event.user.id ? { id: event.user.id } : undefined;
+  }
+  const headers = event.request?.headers;
+  if (headers && typeof headers === 'object') {
+    for (const key of Object.keys(headers)) {
+      if (/authorization|cookie/i.test(key)) headers[key] = '[redacted]';
+    }
+  }
+  if (event.request?.cookies) event.request.cookies = undefined;
+  if (typeof event.message === 'string') event.message = redactText(event.message);
+  for (const ex of event.exception?.values ?? []) {
+    if (typeof ex.value === 'string') ex.value = redactText(ex.value);
+  }
+  for (const crumb of event.breadcrumbs ?? []) {
+    if (typeof crumb.message === 'string') crumb.message = redactText(crumb.message);
+  }
+  return event;
+}
 
 /**
  * Initializes Sentry if (a) a DSN is configured via env var and (b)
@@ -31,6 +63,8 @@ export function initSentry(): void {
       profilesSampleRate: 0.1,
       environment: __DEV__ ? 'development' : 'production',
       enabled: !__DEV__,
+      sendDefaultPii: false,
+      beforeSend: scrubSentryEvent,
     });
     sentryClient = Sentry;
   } catch {
