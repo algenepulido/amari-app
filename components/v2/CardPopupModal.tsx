@@ -5,7 +5,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { MotiView } from 'moti';
 import * as Haptics from 'expo-haptics';
 import { useQueryClient } from '@tanstack/react-query';
-import { colors, typography } from '@/lib/theme';
+import { colors, typography, type MembershipTier } from '@/lib/theme';
 import { supabase } from '@/lib/supabase';
 import { useBarcode } from '@/hooks/useBarcode';
 import { ProfileMembershipCard } from './ProfileMembershipCard';
@@ -27,6 +27,7 @@ interface CardPopupModalProps {
   fullName: string;
   city?: string | null;
   tierLabel: string;
+  tier?: MembershipTier;
   displayId: string;
   memberUuid: string;
 }
@@ -37,6 +38,7 @@ export function CardPopupModal({
   fullName,
   city,
   tierLabel,
+  tier,
   displayId,
   memberUuid,
 }: CardPopupModalProps) {
@@ -213,6 +215,7 @@ export function CardPopupModal({
             <ProfileMembershipCard
               fullName={fullName}
               city={city}
+              tier={tier}
               tierLabel={tierLabel}
               displayId={displayId}
               size="expanded"

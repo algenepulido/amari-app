@@ -47,20 +47,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   // Derive the effective tier and admin flag from live membership, so a downgrade or
-  // suspension takes effect without waiting for the access token to refresh. The token
-  // value above is only the first-paint hint; on any failure that value is kept.
+  // suspension takes effect without waiting for the access token to refresh. The admin flag
+  // fails closed: it is true only when the live check explicitly confirms it, so a failed or
+  // errored check drops admin rather than keeping a stale elevated value from the token. The
+  // tier keeps the token value as a first-paint hint when the live tier read cannot complete.
   const applyEffectiveTier = async (userId: string) => {
     try {
       const [tierRes, adminRes] = await Promise.all([
         supabase.rpc('get_member_tier'),
         supabase.rpc('is_admin'),
       ]);
-      if (tierRes.error) return;
-      const tier = (tierRes.data as MembershipTier) || 'member';
       const isAdmin = !adminRes.error && adminRes.data === true;
-      setState(prev => (prev.user?.id === userId ? { ...prev, tier, isAdmin } : prev));
+      setState(prev => {
+        if (prev.user?.id !== userId) return prev;
+        const tier = !tierRes.error ? ((tierRes.data as MembershipTier) || 'member') : prev.tier;
+        return { ...prev, tier, isAdmin };
+      });
     } catch {
-      // keep the token-derived tier
+      // The live check could not complete. Fail admin closed; keep the token tier as a hint.
+      setState(prev => (prev.user?.id === userId ? { ...prev, isAdmin: false } : prev));
     }
   };
 
@@ -81,12 +86,18 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const { tier, isAdmin } = extractTierFromSession(session);
       setState(prev => {
         const sameUser = prev.user?.id === session?.user?.id;
+        // On a token refresh for the same user, keep the live-derived tier and admin flag rather
+        // than overwriting them with the token values, which can be stale: a suspended admin whose
+        // token metadata was not rewritten would otherwise regain admin navigation. The live check
+        // in the TOKEN_REFRESHED branch below reconciles them. On sign-in or a user change the
+        // token is the first-paint hint.
+        const keepLive = event === 'TOKEN_REFRESHED' && sameUser;
         return {
           ...prev,
           session,
           user: session?.user ?? null,
-          tier,
-          isAdmin,
+          tier: keepLive ? prev.tier : tier,
+          isAdmin: keepLive ? prev.isAdmin : isAdmin,
           isLoading: false,
           isPostAuthSetupComplete: session?.user ? sameUser && prev.isPostAuthSetupComplete : true,
         };
@@ -97,6 +108,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       if (event === 'TOKEN_REFRESHED') {
+        if (session?.user) applyEffectiveTier(session.user.id);
         queryClient.invalidateQueries({ queryKey: queryKeys.corridor.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.events.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.aligned.all });
@@ -272,31 +284,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     redeemPendingCode();
   }, [state.user?.id, state.isLoading, state.isPostAuthSetupComplete]);
 
-  // Listen for tier change notifications via Supabase Realtime
-  useEffect(() => {
-    if (!state.user) return;
-
-    const channel = supabase
-      .channel('tier-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `member_id=eq.${state.user.id}`,
-        },
-        async (payload: any) => {
-          if (payload.new.type === 'tier_change') {
-            if (state.user) await applyEffectiveTier(state.user.id);
-            await supabase.auth.refreshSession();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [state.user?.id]);
+  // A Supabase Realtime listener on the notifications table used to trigger a live tier refresh,
+  // but notifications is not in the realtime publication in production, so it never fired. The
+  // live membership check runs on sign-in, on each foreground, and after a token refresh, which
+  // covers tier and admin changes without depending on a publication that is not configured.
 
   return (
     <AuthContext.Provider value={state}>

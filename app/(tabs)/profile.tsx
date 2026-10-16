@@ -682,6 +682,7 @@ export default function ProfileScreen() {
         onClose={() => setShowCardPopup(false)}
         fullName={fullName}
         city={locationLabel}
+        tier={tier}
         tierLabel={tierLabel}
         displayId={displayId}
         memberUuid={user?.id || profile?.id || ''}
